@@ -15,6 +15,11 @@
 
 ### Start
 
+I will leave the language choice up to you Python vs. Rust
+
+* My one thing to add about this is that Rust is substantially faster and more efficient when it comes to cpu and memory utalization, as well as it natively supports multithreading, so we could utalize ~infitite cpu cores through a HPC. 
+* Rust is harder to write as a nooby than python however, so it might take longer to get the ball rolling as far as learning a new language/syntax.
+
 1. I think it would be best to start by using the fly as our template genome
 
 # Fly Genome Statistics and Initial Calculations
@@ -46,4 +51,4 @@ num_genes = 14000
 			* Then at each mobilization step, record the "random" coordinates that are chosen where it inserts
 			* My idea is that if you keep a log of the order of movments then maybe you can calcuate all of the interactions in one single step. 			
 			* Alternative ideas are to record snapshots at every "cell cycle", then compare the snapshots. 
-			
+
