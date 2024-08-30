@@ -24,6 +24,26 @@ min_gene_length = 66
 max_gene_length = 14544
 num_genes = 14000
 
+# Things to consider
 
+- Probability of moving
+	* Mobile DNA do not mobilize every cycle
 
+- Different types of Mobile DNA exist
+        * Copy and paste vs cut and paste
 
+- DNA is double stranded, so we need to figure out how to handle each strand being different lengths
+	* Ideas: 
+		* Set the arrays to be larger and than the actual genome size. Initially set the excess array slots to be blank or a number. Then as array expands/ contracts it can have space to expand but you do not need to reconfigure the arrays memory and this may solve the problem of the strands being different lengths.  
+
+- How to determine where the mobile DNA inserts?
+	* Might be best to just assume random coordinate on random strand
+
+- How to calculate interactions:
+	* This you might be more knowledgable than I. 
+		* Ideas:
+			* When the array is initialized, record the coordinates of every element in a file.
+			* Then at each mobilization step, record the "random" coordinates that are chosen where it inserts
+			* My idea is that if you keep a log of the order of movments then maybe you can calcuate all of the interactions in one single step. 			
+			* Alternative ideas are to record snapshots at every "cell cycle", then compare the snapshots. 
+			
