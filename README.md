@@ -13,4 +13,17 @@
  
 3. Once the simulation is working and is fast, it would be interesting to run this simulation across the entire span of genome size ranges using key species as anchor points for gene size, length, and number
 
-###
+### Start
+
+1. I think it would be best to start by using the fly as our template genome
+
+# Fly Genome Statistics and Initial Calculations
+genome_size = 180000000
+mean_gene_length = 462
+min_gene_length = 66
+max_gene_length = 14544
+num_genes = 14000
+
+
+
+
