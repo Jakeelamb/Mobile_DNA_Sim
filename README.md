@@ -1,8 +1,15 @@
 # Mobile_DNA_Sim
 ![TE_dilution.jpg](https://github.com/Jakeelamb/Mobile_DNA_Sim/blob/main/images/TE_dilution.jpg?raw=true)
 
+## Inspiration
+
+![Conways_game_of_life](https://github.com/Jakeelamb/Mobile_DNA_Sim/blob/main/images/giphy.webp)
+![3dConways_game_of_life](https://github.com/Jakeelamb/Mobile_DNA_Sim/blob/main/images/Pasted%20image%2020231103133741.png)
+
+
 ## Project Goals: 
 1.Design a scalabale mutable artificial Genome 
+![artifical_genome](https://github.com/Jakeelamb/Mobile_DNA_Sim/blob/main/images/Screenshot%20from%202023-11-09%2011-28-44.png)
 - Figure out the best way to efficiently represent genomes from 160K to 120B
 - Should be able to handle different types of mobile DNA, copy and paste vs cut and paste
 - Would be interesting to tweak paramaters and record the differences in outcomes, such as (probability of mobilizing, number of mobilization events/Time passing/cell replications)
