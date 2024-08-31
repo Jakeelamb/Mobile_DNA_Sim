@@ -1,4 +1,5 @@
 # Mobile_DNA_Sim
+![TE_dilution.jpg](https://github.com/Jakeelamb/Mobile_DNA_Sim/blob/main/images/TE_dilution.jpg?raw=true)
 
 ## Project Goals: 
 1.Design a scalabale mutable artificial Genome 
