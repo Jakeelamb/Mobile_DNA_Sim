@@ -21,6 +21,8 @@
  
 3. Once the simulation is working and is fast, it would be interesting to run this simulation across the entire span of genome size ranges using key species as anchor points for gene size, length, and number
 
+4. Linear Regression - to fill in missing data. 
+
 ## Species Anchors
 | Species | Genome Size |
 |-------- | ----------- |
