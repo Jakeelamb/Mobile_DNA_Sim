@@ -7,6 +7,7 @@ name = "Simulation_v1"
 version = "0.1.0"
 dependencies = [
  "bio",
+ "chronos",
  "clap",
  "linfa",
  "plotters",
@@ -555,6 +556,12 @@ dependencies = [
  "wasm-bindgen",
  "windows-targets 0.52.6",
 ]
+
+[[package]]
+name = "chronos"
+version = "0.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a49b92335832dd7ec207aa06fc915f8567ed09bf103952d580fd163e4b8fd08c"
 
 [[package]]
 name = "clang-sys"
