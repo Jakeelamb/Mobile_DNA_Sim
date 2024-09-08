@@ -12,7 +12,20 @@
 - [ ] Min_TE_length
 - [ ] Max_TE_length
 
-## 1.2 Set up the project directory strucutre for a given run
+## 1.2 Download the gtf files for the species in the table
+- [ ] Pull all of the gtf files from the ensembl website
+    ```
+    rsync -avhzP --exclude="*abinitio*" rsync://ftp.ensembl.org/ensembl/pub/current_gtf/*/*.gtf.gz .
+    ```
+- [ ] Unzip the gtf files
+    ```
+    gunzip *.gz
+    ```
+- [ ] Parse the gtf files to get the total range of exons
+```
+cargo run 
+
+## 1.3 Set up the project directory strucutre for a given run
 ### Function to Set up the project directory strucutre for a given run
 // This function should:
 // Create a directory called ${species_name}_${date}
@@ -38,6 +51,7 @@ fn Write_console_output_to_log_file()
 ```
 fn Write_simulation_statistics_to_file()
 ```
+
 
 # 2. Array design and initialization
 
