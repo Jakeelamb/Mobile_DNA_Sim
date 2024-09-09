@@ -1,5 +1,10 @@
 # This md file is to outline the workflow and ideas associated with each step of the codebase
 
+# Goal: Build two things:
+1.) 1. A script that runs the simulation across all of the species to observe differences
+2.) 2. A simulation tool with a TUI to run the simulation for a single species and observe the interactions in real time. 
+
+
 # 1. Data collection/generation & Project setup
 
 ## 1.1 Create a table with the following columns: 
