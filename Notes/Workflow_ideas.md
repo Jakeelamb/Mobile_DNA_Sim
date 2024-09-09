@@ -5,34 +5,34 @@
 ## 1.1 Create a table with the following columns: 
 - [ ] Species
 - [ ] Genome_size
-- [ ] Number_of_genes
-- [ ] Min_gene_length
-- [ ] Max_gene_length
-- [ ] Number_of_TEs
-- [ ] Min_TE_length
-- [ ] Max_TE_length
+- [ ] Exoun_count
 
 ## 1.2 Download the gtf files for the species in the table
 - [ ] Pull all of the gtf files from the ensembl website
-    ```
-    rsync -avhzP --exclude="*abinitio*" rsync://ftp.ensembl.org/ensembl/pub/current_gtf/*/*.gtf.gz .
-    ```
+```
+rsync -avhzP --exclude="*abinitio*" rsync://ftp.ensembl.org/ensembl/pub/current_gtf/*/*.gtf.gz .
+```
 - [ ] Unzip the gtf files
-    ```
-    gunzip *.gz
-    ```
+```
+gunzip *.gz
+```
 - [ ] Parse the gtf files to get the total range of exons
 ```
-cargo run 
+cargo run gtf_parser
+```
+- [ ] Scrape the genome size of the annotation from ensembl
+```
+python3 scrape.py
+```
 
 ## 1.3 Set up the project directory strucutre for a given run
 ### Function to Set up the project directory strucutre for a given run
 // This function should:
-// Create a directory called ${species_name}_${date}
+// Create a directory called {species_name}_{date}
 // Create a file called Simulation_parameters.txt
 // Create a file called Simulation_statistics.txt
 // Create a file called Simulation_log.txt
-// Date should be formatted as YYYY-MM-DD and include the hh:mm:ss
+// Date should be formatted as YYYY-MM-DD:hh:mm
 
 fn Configure_simulation_dir_structure()
 
@@ -51,9 +51,7 @@ fn Write_console_output_to_log_file()
 ```
 fn Write_simulation_statistics_to_file()
 ```
-
-
-# 2. Array design and initialization
+# 2. Simulation design and initialization
 
 ## 2.1 Structs
 ### Struct to store the statistics for a species
@@ -61,35 +59,41 @@ fn Write_simulation_statistics_to_file()
 Struct Species_statistics {
     Species: String,
     Genome_size: usize,
-    Number_of_genes: u16,
-    Min_gene_length: u16,
-    Max_gene_length: u32,
-    Mean_gene_length: u32,
-    Number_of_TEs: u16,
-    Min_TE_length: u16,
-    Max_TE_length: u32
+    Exon_count: usize,
 }
 ```
-### Struct to store the simulation parameters
+### Struct to store the simulation input parameters
 ```
-struct Simulation_parameters {
+struct Simulation_input_parameters {
     Species: String,
     Genome_size: usize,
-    Current_round: u32,
     Number_of_rounds: u32,
     Number_of_CPU_cores: u8,
-    Running_time: u64,
+    num_active_TEs: usize,
 } 
 ```
-### Struct to store the simulation statistics
+### Struct to store the current round statistics
+```
+struct Current_round_statistics {
+    Number_of_mutations: u32,
+    Number_of_TEs_mobilized: u32,
+    Number_of_basepairs_added: u64,
+    Current_round: u32,
+    Running_time_for_current_round: u64,
+    num_active_TEs: usize,
+}
+```
+### Struct to store the cumulative statistics
 ```
 struct Simulation_statistics {
     Number_of_mutations: u32,
     Number_of_TEs_mobilized: u32,
     Number_of_basepairs_added: u64,
-    Number_of_TEs_inserted_into_exons: u32,
-    Number_of_TEs_inserted_into_introns: u32,
-    Number_of_TEs_inserted_into_TEs: u32,
+    Mean_number_of_basepairs_added_per_round: f64,
+    Mean_number_of_mutations_per_round: f64,
+    Number_of_rounds_completed: u32,
+    Total_running_time: u64,
+    num_active_TEs: usize,
 }
 ```
 ## 2.2 Functions
