@@ -12,6 +12,7 @@
 - [ ] Genome_size
 - [ ] Exoun_count
 
+//ensembl website: ftp://ftp.ensembl.org/pub/release-109/
 ## 1.2 Download the gtf files for the species in the table
 - [ ] Pull all of the gtf files from the ensembl website
 ```
