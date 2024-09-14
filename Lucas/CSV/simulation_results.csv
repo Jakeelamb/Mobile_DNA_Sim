@@ -1,0 +1,2 @@
+Species,Beginning_GENOME_SIZE,Active_tes,range_1_start,range_1_end,range_2_start,range_2_end,TE_mobilized,TE_static,TE_in_exons,TE_in_non_coding,Exon_new_size,Non_coding_new_size,Total_Genome_growth
+Accipiter_nisus.Accipiter_nisus_ver1.0.112,1190649881,9775,0,533365,533366,1190649881,520,480,0,520,533366,1192656411,2539896
