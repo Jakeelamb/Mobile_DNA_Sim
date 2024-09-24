@@ -1,19 +1,21 @@
 mod data_process;
-use data_process::{Record, convert_csv_to_list};
-use std::path::Path;
+mod simulation;
+
+use simulation::{run_simulation, SimulationParam};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let path = Path::new("Data/Species_data.csv");
-    let records = convert_csv_to_list(path.to_str().unwrap())?;
+    // Run the simulation for 100 rounds
+    let simulation_history = run_simulation(100)?;
 
-    for record in records {
-        println!("Species: {}, Genome size: {}, Exons: {}, Assembly: {}",
-                 record.species, record.genome_size, record.exons, record.assembly);
+    // Print out some results
+    for (i, param) in simulation_history.iter().enumerate() {
+        println!("Round {}: Species: {}, Active TEs: {}, TEs in Exons: {}, TEs in Non-coding: {}",
+                 i + 1,
+                 param.get_species(),
+                 param.get_active_te(),
+                 param.get_te_in_exons(),
+                 param.get_te_in_noncoding());
     }
+
     Ok(())
 }
-
-
-
-
-
