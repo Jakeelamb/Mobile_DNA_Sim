@@ -27,29 +27,6 @@ pub struct TabState {
     pub list_state: ListState,
 }
 
-
-
-// impl TabState {
-//     pub fn load_species_from_json(file_path: &str) -> io::Result<Vec<String>> {
-//             let data = fs::read_to_string(file_path).map_err(|e| {
-//                 eprintln!("Error opening file {}: {}", file_path, e);
-//                 e
-//         })?;
-
-//         let json: Value = serde_json::from_str(&data).map_err(|e| {
-//             eprintln!("Error parsing JSON: {}", e);
-//             io::Error::new(io::ErrorKind::Other, "JSON parse error")
-//         })?;
-    
-//         let species = json["species"].as_array()
-//             .unwrap_or(&vec![])
-//             .iter()
-//             .map(|s| s.as_str().unwrap_or("").to_string())
-//             .collect();
-
-//         Ok(species)
-//     }
-
 impl TabState {
     pub fn load_species_from_json(file_path: &str) -> io::Result<Vec<String>> {
         // Read the JSON file into a string
@@ -76,7 +53,7 @@ impl TabState {
 
     
     pub fn new() -> Self {
-        let species = Self::load_species_from_json("widgets/species.json")
+        let species = Self::load_species_from_json("data/species.json")
             .unwrap_or_else(|_| {
                 println!("Error loading species");
                 vec!["Error loading species".to_string()]
@@ -100,6 +77,14 @@ impl TabState {
         if current < self.species.len().saturating_sub(1) {
             self.list_state.select(Some(current + 1));
         }
+    }
+
+    pub fn next(&mut self) {
+        self.selected = (self.selected + 1) % 2; // Now cycling between two tabs
+    }
+
+    pub fn previous(&mut self) {
+        self.selected = (self.selected + 1) % 2; // Now cycling between two tabs
     }
 
 
@@ -145,15 +130,7 @@ impl TabState {
                     .block(Block::default().title("Species").borders(Borders::ALL))
                     .highlight_style(Style::default().bg(Color::Yellow).fg(Color::Black)) // Highlight style for selected item
                     .highlight_symbol(">>"); // Optional: Customize the highlight symbol
-
-                // Render the List with the current state   
-                // let mut list_state = self.list_state.clone(); // Clone the list state
-                // list_state.select(Some(0)); // Ensure the first item is selected
-                // // list_state.select(self.list_state.selected()); // Select the current item
-
-                //   // Render the List with the current state
-                // let area = area.inner(&Margin { vertical: 1, horizontal: 1 }); // Optional margin
-                // f.render_stateful_widget(species_list, area, &mut list_state); // Use render_stateful_widget
+    
     
                 // Create a logo block with the ASCII logo
                 let ascii_logo = get_ascii_logo();
@@ -190,3 +167,84 @@ impl TabState {
         }
     }
 }
+
+// use std::io::{self}; // Import necessary I/O traits
+// use ratatui::style::{Style, Color};
+// use ratatui::text::{Span, Text};
+// use ratatui::{
+//     backend::Backend,
+//     Frame,
+//     layout::{Rect, Constraint, Layout},
+//     widgets::{Tabs, Block, Paragraph, Borders, List, ListState, ListItem}, // Import List and other widgets
+// };
+// use serde_json::Value;
+// use serde::Deserialize;
+// use std::fs;
+
+// use crate::logo::get_ascii_logo;
+// use crate::logo::get_ascii_sim;
+
+// pub enum Widget {
+//     SpeciesList(List<'static>),  // Ensure List is properly imported
+//     LogoBlock(Paragraph<'static>),
+// }
+
+// pub struct TabState {
+//     pub selected: usize,
+//     pub home_tab: HomeTab,
+//     pub sim_tab: SimTab,
+// }
+
+// impl TabState {
+//     pub fn new() -> Self {
+//         let home_tab = HomeTab::new();
+//         let sim_tab = SimTab;
+
+//         TabState { selected: 0, home_tab, sim_tab }
+//     }
+
+//     pub fn next(&mut self) {
+//         self.selected = (self.selected + 1) % 2; // Now cycling between two tabs
+//     }
+
+//     pub fn previous(&mut self) {
+//         self.selected = if self.selected == 0 {
+//             1
+//         } else {
+//             0
+//         }; // Switch to the other tab
+//     }
+
+//     pub fn render(&self) -> Tabs {
+//         let titles = ["Home", "Simulation"];
+//         let tabs: Vec<Span> = titles.iter().map(|&t| Span::from(t)).collect();
+
+//         Tabs::new(tabs)
+//             .select(self.selected)
+//             .block(Block::default().borders(Borders::ALL).title("Tabs"))
+//             .highlight_style(Style::default().bg(Color::Yellow).fg(Color::Black)) // Highlight color for selected tab
+//             .divider(" ") // Optional: Adds a space between tabs
+//     }
+
+//     pub fn render_content(&self) -> Vec<Widget> {
+//         match self.selected {
+//             0 => {
+//                 let species_list = List::new(self.home_tab.render())
+//                     .block(Block::default().title("Species").borders(Borders::ALL))
+//                     .highlight_style(Style::default().bg(Color::Yellow).fg(Color::Black))
+//                     .highlight_symbol(">>");
+
+//                 let logo_block = self.home_tab.render_logo();
+
+//                 vec![Widget::LogoBlock(logo_block), Widget::SpeciesList(species_list)]
+//             },
+//             1 => {
+//                 let logo_block = self.sim_tab.render_logo();
+//                 let more_info_block = self.sim_tab.render_more_info();
+
+//                 vec![Widget::LogoBlock(logo_block), Widget::LogoBlock(more_info_block)]
+//             },
+//             _ => vec![], // Return an empty vector for any unexpected index
+//         }
+//     }
+// }
