@@ -1,17 +1,18 @@
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
-    style::{Color, Style},
-    widgets::{Block, Paragraph, Tabs},
+    // style::{Color, Style},
+    // widgets::{Block, Paragraph, Tabs},
     Terminal,
 };
-
-use std::{fs, io, error::Error};
+use std::time::Duration;
+use std::{io, error::Error};
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+
 // use crate::logo::{get_ascii_logo, get_ascii_sim};
 use crate::widgets::tabs::TabState;
 use crate::widgets::tabs; // Import the `tabs` module
@@ -28,30 +29,23 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
     let mut tab_state = TabState::new();
 
     loop {
-        //  Handle terminal events and draw
-         if let Ok(event) = event::read() {
-            match event {
-                Event::Key(key) => {
-                    match key.code {
-                        KeyCode::Char('q') => break, // Exit on 'q'
-                        KeyCode::Right => tab_state.next(), // Cycle to the next tab
-                        KeyCode::Left => tab_state.previous(), // Cycle to the previous tab
-                        KeyCode::Down => {
-                            if tab_state.selected == 0 { // Only scroll if on the species list tab
-                                tab_state.scroll_down(); // Scroll down in the list
-                            }
-                        }
-                        KeyCode::Up => {
-                            if tab_state.selected == 0 { // Only scroll if on the species list tab
-                                tab_state.scroll_up(); // Scroll up in the list
-                            }
-                        }
-                        _ => {}
-                    }
+     // Capture key events without polling
+     if let Ok(event) = event::read() {
+        match event {
+            Event::Key(key) => {
+                // println!("Key pressed: {:?}", key.code); // Debug print
+                match key.code {
+                    KeyCode::Char('q') => break, // Exit on 'q'
+                    KeyCode::Right => tab_state.next(), // Cycle to the next tab
+                    KeyCode::Left => tab_state.previous(), // Cycle to the previous tab
+                    KeyCode::Down => tab_state.scroll_down(), // Scroll down in the list
+                    KeyCode::Up => tab_state.scroll_up(), // Scroll up in the list
+                    _ => {}
                 }
-                _ => {}
             }
+            _ => {}
         }
+    }
         terminal.draw(|f| {
             let size = f.area(); // The total available space in the terminal
     
@@ -61,7 +55,7 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                 .constraints([
                     Constraint::Length(3), // Allocate 3 lines for the tabs
                     Constraint::Min(10),  // Ensure the first block gets at least 20 lines (e.g., for the logo)
-                    Constraint::Percentage(15), // Remaining space for other content
+                    Constraint::Percentage(30), // Remaining space for other content
                 ].as_ref())
                 .split(size); // Split the available space into chunks
     
