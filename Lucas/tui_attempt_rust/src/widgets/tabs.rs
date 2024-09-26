@@ -2,101 +2,23 @@
 use std::io::{self};
 use ratatui::style::{Style, Color};
 use ratatui::text::{Span};
-use ratatui::widgets::{Tabs, Block, Paragraph, Borders, List, ListState};
-use serde_json::Value;
-use std::fs;
+use ratatui::widgets::{Tabs, Block, Paragraph, Borders, List, ListItem};
 
 mod home; //  directly references home.rs in the same directory.
 mod sim;
+mod utils; // Declare utils module
+pub mod tabstate; // Declare tabstate module
+// Import the TabState struct
+use tabstate::TabState; // Import TabState from tabstate module
 use home::create_home_widgets; // Now this will resolve correctly.
 use sim::create_sim_widgets; // Now this will resolve correctly.
-
-// use crate::logo::{get_ascii_sim}; // Import the get_ascii_logo function
 
 pub enum Widget {
     SpeciesList(List<'static>),
     LogoBlock(Paragraph<'static>),
 }
 
-pub struct TabState {
-    pub selected: usize,
-    pub species: Vec<String>,
-    pub list_state: ListState,
-}
-
-impl TabState {
-    pub fn scroll_down(&mut self) {
-        // Ensure this updates immediately when the down key is pressed
-        if let Some(selected) = self.list_state.selected() {
-            let new_selected = if selected >= self.species.len() - 1 {
-                selected // Stay at the last item
-            } else {
-                selected + 1 // Move down
-            };
-            // println!("Scroll down: {}", new_selected); // Debug: Log the new index
-            self.list_state.select(Some(new_selected));
-        }
-    }
-    
-    pub fn scroll_up(&mut self) {
-        if let Some(selected) = self.list_state.selected() {
-            let new_selected = if selected == 0 {
-                0 // Stay at the first item
-            } else {
-                selected - 1 // Move up
-            };
-            // println!("Scroll up: {}", new_selected); // Debug: Log the new index
-            self.list_state.select(Some(new_selected));
-        }
-    }
-
-    pub fn next(&mut self) {
-        self.selected = (self.selected + 1) % 2; // Now cycling between two tabs
-    }
-
-    pub fn previous(&mut self) {
-        self.selected = (self.selected + 1) % 2; // Now cycling between two tabs
-    }
-
-    pub fn load_species_from_json(file_path: &str) -> io::Result<Vec<String>> {
-        // Read the JSON file into a string
-        let data = fs::read_to_string(file_path).map_err(|e| {
-            eprintln!("Error opening file {}: {}", file_path, e);
-            e
-        })?;
-
-        // Parse the JSON data
-        let json: Value = serde_json::from_str(&data).map_err(|e| {
-            eprintln!("Error parsing JSON: {}", e);
-            io::Error::new(io::ErrorKind::Other, "JSON parse error")
-        })?;
-
-        // Extract the species names
-        let species = json.as_array()
-            .unwrap_or(&vec![]) // If it's not an array, return an empty vector
-            .iter()
-            .filter_map(|item| item.get("species").and_then(|s| s.as_str()).map(String::from))
-            .collect();
-
-        Ok(species)
-    }
-
-    
-    pub fn new() -> Self {
-        let species = Self::load_species_from_json("data/species.json")
-            .unwrap_or_else(|_| {
-                println!("Error loading species");
-                vec!["Error loading species".to_string()]
-            });
-        
-        let mut list_state = ListState::default(); // Initialize the ListState
-        list_state.select(Some(0)); // Select the first item in the list
-
-        TabState { selected: 0, list_state, species }
-    }
-
-
-    
+impl TabState {    
     pub fn render(&self) -> Tabs {
         let titles = ["Home", "Simulation"];
         let tabs: Vec<Span> = titles.iter().map(|&t| Span::from(t)).collect();
@@ -116,6 +38,21 @@ impl TabState {
             _ => vec![], // Return an empty vector for any unexpected index
         }
     }
+
+
+    // Not working, but leave for now:
+    // pub fn render_list(&self) -> List<'static> {
+    //     // Create ListItems from the species vector
+    //     let items: Vec<ListItem> = self.species.iter().map(|species| {
+    //         ListItem::new(Span::from(species.clone()))
+    //     }).collect();
+
+    //     // Create and return a List widget
+    //     List::new(items)
+    //         .block(Block::default().title("Species List").borders(Borders::ALL))
+    //         .highlight_style(Style::default().bg(Color::Yellow).fg(Color::Black)) // Highlight style for selected item
+    //         .highlight_symbol(">> ") // Symbol for highlighting
+    // }
 }
 
 
