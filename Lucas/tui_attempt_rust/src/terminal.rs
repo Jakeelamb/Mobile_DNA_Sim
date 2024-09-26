@@ -13,7 +13,8 @@ use crossterm::{
 };
 
 // use crate::logo::{get_ascii_logo, get_ascii_sim};
-use crate::widgets::tabs::TabState;
+// use crate::widgets::tabs::TabState;
+use crate::widgets::tabs::tabstate::TabState;
 use crate::widgets::tabs; // Import the `tabs` module
 
 pub fn run_app() -> Result<(), Box<dyn Error>> {
@@ -81,7 +82,7 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
     }
 
 
-//     // Restore terminal (Clean up terminal state)
+// Restore terminal (Clean up terminal state)
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
     terminal.show_cursor()?;
