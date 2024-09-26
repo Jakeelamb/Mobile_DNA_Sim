@@ -2,9 +2,7 @@
 use std::io::{self};
 use ratatui::style::{Style, Color};
 use ratatui::text::{Span};
-use ratatui::widgets::{Tabs, Block, Paragraph, Borders, List, ListState};
-use serde_json::Value;
-use std::fs;
+use ratatui::widgets::{Tabs, Block, Paragraph, Borders, List, ListItem};
 
 mod home; //  directly references home.rs in the same directory.
 mod sim;
@@ -40,6 +38,21 @@ impl TabState {
             _ => vec![], // Return an empty vector for any unexpected index
         }
     }
+
+
+    // Not working, but leave for now:
+    // pub fn render_list(&self) -> List<'static> {
+    //     // Create ListItems from the species vector
+    //     let items: Vec<ListItem> = self.species.iter().map(|species| {
+    //         ListItem::new(Span::from(species.clone()))
+    //     }).collect();
+
+    //     // Create and return a List widget
+    //     List::new(items)
+    //         .block(Block::default().title("Species List").borders(Borders::ALL))
+    //         .highlight_style(Style::default().bg(Color::Yellow).fg(Color::Black)) // Highlight style for selected item
+    //         .highlight_symbol(">> ") // Symbol for highlighting
+    // }
 }
 
 

@@ -63,6 +63,10 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
             let tabs = tab_state.render(); // Get the tabs
             f.render_widget(tabs, chunks[0]); // Render the tabs
 
+            // Render the list of species ( not working )
+            // let list_widget = tab_state.render_list(); // Call your render_list method
+            // f.render_widget(list_widget, chunks[2]); // Render the list in the next chunk
+
             // Get the content blocks (Paragraphs, List, etc.) from `render_content`
             let content_blocks = tab_state.render_content();
     
