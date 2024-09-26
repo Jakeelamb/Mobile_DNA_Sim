@@ -8,6 +8,7 @@ use std::fs;
 
 mod home; //  directly references home.rs in the same directory.
 mod sim;
+mod utils; // Declare utils module
 use home::create_home_widgets; // Now this will resolve correctly.
 use sim::create_sim_widgets; // Now this will resolve correctly.
 

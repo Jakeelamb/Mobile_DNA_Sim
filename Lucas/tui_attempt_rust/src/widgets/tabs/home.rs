@@ -1,10 +1,11 @@
 // home.rs
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
+use ratatui::widgets::{List, ListItem, Paragraph};
 use ratatui::style::{Color, Style};
 use ratatui::text::Text;
 use crate::logo::get_ascii_logo; // Import the logo function
 use super::Widget; // `super` refers to the parent module, which is `tabs.rs`.
 use ratatui::widgets::ListState;
+use crate::widgets::tabs::utils::{create_block};
 
 pub fn create_home_widgets(species: &Vec<String>, list_state: &mut ListState) -> Vec<Widget> {
     // Create a list of species from the CSV file
@@ -23,18 +24,14 @@ pub fn create_home_widgets(species: &Vec<String>, list_state: &mut ListState) ->
 
     // Create a list with a block
     let species_list = List::new(visible_content.to_vec())
-        .block(Block::default().title("Species").borders(Borders::ALL))
+        .block(create_block("Species", Color::Black))
         .highlight_style(Style::default().bg(Color::Yellow).fg(Color::Black)) // Highlight style for selected item
         .highlight_symbol(">>");
 
     // Create a logo block with the ASCII logo
     let ascii_logo = get_ascii_logo();
     let logo_block = Paragraph::new(ascii_logo)
-        .block(Block::default()
-            .title("Logo")
-            .style(Style::default().bg(Color::Blue))
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::White)));
+        .block(create_block("Logo", Color::Blue));
 
     // Return the widgets as the new enum variant
     vec![

@@ -5,7 +5,6 @@ use ratatui::{
     // widgets::{Block, Paragraph, Tabs},
     Terminal,
 };
-use std::time::Duration;
 use std::{io, error::Error};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -80,17 +79,7 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
             });
         })?;
     }
-//         // Handle user input (e.g., navigating the tabs or exiting the app)
-//         // if let Event::Key(key) = event::read()? {
-//         //     match key.code {
-//         //         KeyCode::Char('q') => break, // Exit on 'q'
-//         //         KeyCode::Right => tab_state.next(), // Cycle to the next tab
-//         //         KeyCode::Left => tab_state.previous(), // Cycle to the previous tab
-//         //         KeyCode::Down => tab_state.scroll_down(), // Scroll down in the list
-//         //         KeyCode::Up => tab_state.scroll_up(), // Scroll up in the list
-//         //         _ => {}
-//         //     }
-//         // }
+
 
 //     // Restore terminal (Clean up terminal state)
     disable_raw_mode()?;
