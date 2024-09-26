@@ -1,3 +1,5 @@
+//terminal.rs
+
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
@@ -5,7 +7,6 @@ use ratatui::{
     // widgets::{Block, Paragraph, Tabs},
     Terminal,
 };
-use std::time::Duration;
 use std::{io, error::Error};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -14,7 +15,8 @@ use crossterm::{
 };
 
 // use crate::logo::{get_ascii_logo, get_ascii_sim};
-use crate::widgets::tabs::TabState;
+// use crate::widgets::tabs::TabState;
+use crate::widgets::tabs::tabstate::TabState;
 use crate::widgets::tabs; // Import the `tabs` module
 
 pub fn run_app() -> Result<(), Box<dyn Error>> {
@@ -63,6 +65,10 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
             let tabs = tab_state.render(); // Get the tabs
             f.render_widget(tabs, chunks[0]); // Render the tabs
 
+            // Render the list of species ( not working )
+            // let list_widget = tab_state.render_list(); // Call your render_list method
+            // f.render_widget(list_widget, chunks[2]); // Render the list in the next chunk
+
             // Get the content blocks (Paragraphs, List, etc.) from `render_content`
             let content_blocks = tab_state.render_content();
     
@@ -80,19 +86,9 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
             });
         })?;
     }
-//         // Handle user input (e.g., navigating the tabs or exiting the app)
-//         // if let Event::Key(key) = event::read()? {
-//         //     match key.code {
-//         //         KeyCode::Char('q') => break, // Exit on 'q'
-//         //         KeyCode::Right => tab_state.next(), // Cycle to the next tab
-//         //         KeyCode::Left => tab_state.previous(), // Cycle to the previous tab
-//         //         KeyCode::Down => tab_state.scroll_down(), // Scroll down in the list
-//         //         KeyCode::Up => tab_state.scroll_up(), // Scroll up in the list
-//         //         _ => {}
-//         //     }
-//         // }
 
-//     // Restore terminal (Clean up terminal state)
+
+// Restore terminal (Clean up terminal state)
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
     terminal.show_cursor()?;
