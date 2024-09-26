@@ -35,25 +35,33 @@ impl TabState {
         match self.selected {
             0 => create_home_widgets(&self.species, &mut self.list_state),
             1 => create_sim_widgets(),
-            _ => vec![], // Return an empty vector for any unexpected index
+            _ => {
+                create_home_widgets(&self.species, &mut self.list_state)
+            }
         }
     }
+}
 
-
-    // Not working, but leave for now:
     // pub fn render_list(&self) -> List<'static> {
     //     // Create ListItems from the species vector
-    //     let items: Vec<ListItem> = self.species.iter().map(|species| {
-    //         ListItem::new(Span::from(species.clone()))
+    //     let items: Vec<ListItem> = self.species.iter().enumerate().map(|(i, species)| {
+    //         // Check if this item is selected and apply a style
+    //         let is_selected = self.list_state.selected() == Some(i);
+    //         let style = if is_selected {
+    //             Style::default().bg(Color::Yellow).fg(Color::Black) // Highlight style for the selected item
+    //         } else {
+    //             Style::default() // Default style for unselected items
+    //         };
+            
+    //         ListItem::new(Span::styled(species.clone(), style)) // Use styled Span
     //     }).collect();
 
     //     // Create and return a List widget
     //     List::new(items)
     //         .block(Block::default().title("Species List").borders(Borders::ALL))
-    //         .highlight_style(Style::default().bg(Color::Yellow).fg(Color::Black)) // Highlight style for selected item
     //         .highlight_symbol(">> ") // Symbol for highlighting
     // }
-}
+   
 
 
 // Do i need this later?

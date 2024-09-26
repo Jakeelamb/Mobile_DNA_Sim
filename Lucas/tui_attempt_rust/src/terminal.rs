@@ -18,6 +18,7 @@ use crossterm::{
 // use crate::widgets::tabs::TabState;
 use crate::widgets::tabs::tabstate::TabState;
 use crate::widgets::tabs; // Import the `tabs` module
+use crate::logo::{get_ascii_logo, get_ascii_sim}; // Import the logo functions
 
 pub fn run_app() -> Result<(), Box<dyn Error>> {
     // Setup terminal
@@ -31,23 +32,6 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
     let mut tab_state = TabState::new();
 
     loop {
-     // Capture key events without polling
-     if let Ok(event) = event::read() {
-        match event {
-            Event::Key(key) => {
-                // println!("Key pressed: {:?}", key.code); // Debug print
-                match key.code {
-                    KeyCode::Char('q') => break, // Exit on 'q'
-                    KeyCode::Right => tab_state.next(), // Cycle to the next tab
-                    KeyCode::Left => tab_state.previous(), // Cycle to the previous tab
-                    KeyCode::Down => tab_state.scroll_down(), // Scroll down in the list
-                    KeyCode::Up => tab_state.scroll_up(), // Scroll up in the list
-                    _ => {}
-                }
-            }
-            _ => {}
-        }
-    }
         terminal.draw(|f| {
             let size = f.area(); // The total available space in the terminal
     
@@ -65,10 +49,6 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
             let tabs = tab_state.render(); // Get the tabs
             f.render_widget(tabs, chunks[0]); // Render the tabs
 
-            // Render the list of species ( not working )
-            // let list_widget = tab_state.render_list(); // Call your render_list method
-            // f.render_widget(list_widget, chunks[2]); // Render the list in the next chunk
-
             // Get the content blocks (Paragraphs, List, etc.) from `render_content`
             let content_blocks = tab_state.render_content();
     
@@ -77,6 +57,7 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                 let chunk = *chunks.get(i+1).unwrap_or(&chunks[1]); // Dereference to pass a `Rect` instead of `&Rect`
                 match block {
                     tabs::Widget::SpeciesList(list) => {
+                        // let list_widget = tab_state.render_list();
                         f.render_widget(list.clone(), chunk);
                     }
                     tabs::Widget::LogoBlock(paragraph) => {
@@ -85,6 +66,23 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                 }
             });
         })?;
+        // Capture key events without polling
+        if let Ok(event) = event::read() {
+            match event {
+                Event::Key(key) => {
+                    // println!("Key pressed: {:?}", key.code); // Debug print
+                    match key.code {
+                        KeyCode::Char('q') => break, // Exit on 'q'
+                        KeyCode::Right => tab_state.next(), // Cycle to the next tab
+                        KeyCode::Left => tab_state.previous(), // Cycle to the previous tab
+                        KeyCode::Down => tab_state.scroll_down(), // Scroll down in the list
+                        KeyCode::Up => tab_state.scroll_up(), // Scroll up in the list
+                        _ => {}
+                    }   
+                }
+                _ => {}
+            }
+        }
     }
 
 

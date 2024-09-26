@@ -18,9 +18,10 @@ impl TabState {
             });
 
         let mut list_state = ListState::default(); // Initialize the ListState
-        list_state.select(Some(0)); // Select the first item in the list
+        list_state.select(Some(4)); // Select the first item in the list
 
-        TabState { selected: 0, list_state, species }
+        // println!("Initial selected index: {:?}", list_state.selected()); 
+        TabState { selected: 4, list_state, species }
     }
 
     pub fn load_species_from_json(file_path: &str) -> io::Result<Vec<String>> {
@@ -55,6 +56,7 @@ impl TabState {
                 selected + 1 // Move down
             };
             // println!("Scroll down: {}", new_selected); // Debug: Log the new index
+            // println!("Scrolling down: old index: {}, new index: {}", selected, new_selected); //
             self.list_state.select(Some(new_selected));
         }
     }
