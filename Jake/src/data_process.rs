@@ -2,7 +2,7 @@ use serde::Deserialize;
 use csv::Reader;
 use std::error::Error;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Record {
     #[serde(rename = "Species_name")]
     pub species: String,
