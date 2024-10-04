@@ -1,6 +1,4 @@
 use std::fs;
-use ratatui::widgets::{Block, Borders, Paragraph};
-use ratatui::style::{Style, Color};
 
 pub fn get_ascii_logo() -> String {
     fs::read_to_string("img/logo2.txt")
