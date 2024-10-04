@@ -3,8 +3,6 @@
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
-    // style::{Color, Style},
-    // widgets::{Block, Paragraph, Tabs},
     Terminal,
 };
 use std::{io, error::Error};
@@ -14,11 +12,8 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-// use crate::logo::{get_ascii_logo, get_ascii_sim};
-// use crate::widgets::tabs::TabState;
 use crate::widgets::tabs::tabstate::TabState;
 use crate::widgets::tabs; // Import the `tabs` module
-use crate::logo::{get_ascii_logo, get_ascii_sim}; // Import the logo functions
 
 pub fn run_app() -> Result<(), Box<dyn Error>> {
     // Setup terminal
