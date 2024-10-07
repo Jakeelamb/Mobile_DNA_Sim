@@ -1,51 +1,86 @@
 // src/widgets/tabstate.rs
-use crate::widgets::app_widgets::{get_ascii_logo, get_ascii_sim};
-use crate::widgets::utils::create_block;
+use crate::widgets::app_widgets::AppWidget;
+use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Tabs};
 use ratatui::style::{Style, Color};
 use ratatui::text::{Span, Line};
-use ratatui::widgets::{Tabs, Block, Borders, Paragraph, ListState, ListItem, List};
-use crate::widgets::app_widgets::{AppWidget};
+use ratatui::widgets::ListState;
+use std::collections::HashMap;
+use serde_json::Value; // Import Value from serde_json for JSON parsing
+use serde::Deserialize;
+use std::fs;
+use crate::logo::{get_ascii_logo, get_ascii_sim}; // Import the logo functions
 
+/// Holds the state and information for the application
 pub struct TabState {
     pub index: usize,
-    pub species: Vec<String>, // List of species for the home tab
-    pub list_state: ListState, // State management for the species list
+    pub species: Vec<String>,       // List of species for the home tab
+    pub list_state: ListState,      // State management for the species list
+    pub species_info: HashMap<String, SpeciesData>, // Species data for the info block
+    // pub starting_tes: String,       // Store user input for Starting TEs
+    // pub sim_rounds: String,         // Store user input for Simulation Rounds
+    // pub cpu_cores: String,          // Store user input for CPU Cores
+    // pub output_dir: String,         // Store user input for Output Directory
+    // pub active_input: usize,        // Track which input field is active
+}
+
+#[derive(Deserialize, Debug)]
+struct SpeciesRecord {
+    species: String,
+}
+
+/// Load species names from a JSON file and return a Vec<String>
+pub fn load_species_list(file_path: &str) -> Vec<String> {
+    // Read the JSON file
+    let data = fs::read_to_string(file_path).expect("Unable to read JSON file");
+    // Parse the JSON data into a Vec<SpeciesRecord>
+    let species_records: Vec<SpeciesRecord> = serde_json::from_str(&data).expect("Unable to parse JSON file");
+    // Extract the species names into a Vec<String>
+    species_records.into_iter().map(|record| record.species).collect()
 }
 
 impl TabState {
     pub fn new() -> TabState {
         let mut state = ListState::default();
         state.select(Some(0)); // Start with the first item selected
-        TabState {
-            index: 0,
-            species: vec![
-                "Bulbasaur".to_string(),
-                "Ivysaur".to_string(),
-                "Venusaur".to_string(),
-                "Charmander".to_string(),
-                "Squirtle".to_string(),
-                "Jigglypuff".to_string(),
-                "Gengar".to_string(),
-                "Snorlax".to_string(),
-                "Pikachu".to_string(),
-                "Eevee".to_string(),
-                "Mewtwo".to_string(),
-                "Lucario".to_string(),
-                "Greninja".to_string(),
-                "Zacian".to_string(),
-                "Zamazenta".to_string(),
-                "Calyrex".to_string(),
-                "Urshifu".to_string(),
-                "Zarude".to_string(),
-                "Regieleki".to_string(),
-                "Regidrago".to_string(),
-                "Glastrier".to_string(),
-                "Spectrier".to_string(),
-                "Cinderace".to_string(),
-            ],
-            list_state: state,  // Initialize list state
+
+         // Load species list from JSON file
+        let species = load_species_list("data/species.json");
+
+        let species_info = TabState::load_species_data();
+            TabState { index: 0, species, list_state: state, species_info,
+                // starting_tes: "500".to_string(),
+                // sim_rounds: "10000".to_string(),
+                // cpu_cores: "16".to_string(),
+                // output_dir: "Results".to_string(),
+                // active_input: 0 
+        } 
         }
-    }
+
+        pub fn load_species_data() -> HashMap<String, SpeciesData> {
+            // Replace with path to your JSON file
+            let file_path = "species_data.json"; 
+            let mut species_data = HashMap::new();
+            if let Ok(data) = std::fs::read_to_string(file_path) {
+                let parsed: Value = serde_json::from_str(&data).unwrap();
+                if let Some(species_map) = parsed.as_object() {
+                    for (key, value) in species_map {
+                        if let Some(details) = value.as_object() {
+                            species_data.insert(
+                                key.clone(),
+                                SpeciesData {
+                                    name: key.clone(),
+                                    genome_size: details.get("genome_size").unwrap_or(&Value::String("N/A".to_string())).to_string(),
+                                    exon_size: details.get("exon_size").unwrap_or(&Value::String("N/A".to_string())).to_string(),
+                                    exon_ratio: details.get("exon_ratio").unwrap_or(&Value::String("N/A".to_string())).to_string(),
+                                },
+                            );
+                        }
+                    }
+                }
+            }
+            species_data
+        }
+
 
     pub fn render(&self) -> Tabs {
         let titles = ["Home", "Simulation"];
@@ -54,6 +89,14 @@ impl TabState {
             .block(Block::default().borders(Borders::ALL).title("Tabs"))
             .select(self.index)
             .highlight_style(Style::default().fg(Color::Yellow))
+    }
+
+    pub fn render_content(&self) -> Vec<AppWidget> {
+        match self.index {
+            0 => self.render_home_widgets(),  // Render widgets for the Home tab
+            1 => self.render_sim_widgets(),   // Render widgets for the Simulation tab
+            _ => self.render_home_widgets(),
+        }
     }
 
     pub fn render_header(&self) -> Paragraph {
@@ -91,15 +134,6 @@ impl TabState {
             .style(Style::default().fg(text_color).bg(bg_color)) // Apply text color and background color
     }
 
-     /// Render the main content area based on the active tab
-    pub fn render_content(&self) -> Vec<AppWidget> {
-        match self.index {
-            0 => self.render_home_widgets(),  // Home tab content
-            1 => self.render_sim_widgets(),   // Simulation tab content
-            _ => self.render_home_widgets(),
-        }
-    }
-
      /// Helper function to render widgets for the Home tab
     pub fn render_home_widgets(&self) -> Vec<AppWidget> {
         // Create a List widget for the species
@@ -115,11 +149,27 @@ impl TabState {
             .style(Style::default().fg(Color::Black).bg(Color::White))
             .highlight_style(Style::default().fg(Color::Black).bg(Color::Yellow)); // Highlighted item style
 
-        let logo_block = Paragraph::new("Home Logo Block");
-
+         // Create Species Info block
+        let selected_species = self.species.get(self.list_state.selected().unwrap_or(0)).unwrap();
+        let species_info = self.species_info.get(selected_species).cloned().unwrap_or(SpeciesData::default());
+        let species_info_text = format!(
+            "Species: {}\nGenome Size: {}\nExon Size: {}\nExon/Genome Ratio: {}",
+            species_info.name, species_info.genome_size, species_info.exon_size, species_info.exon_ratio
+        );
+        let info_block = Paragraph::new(species_info_text)
+            .block(Block::default().borders(Borders::ALL).title("Species Info"))
+            .style(Style::default().bg(Color::Blue).fg(Color::White));
+ 
+         // Create Simulation Settings block
+        let sim_settings_text = "Simulation Settings\nStarting TEs: 500\nSimulation Rounds: 10000\nCPU cores: 16\nOutput Directory Path: Results";
+        let sim_settings_block = Paragraph::new(sim_settings_text)
+            .block(Block::default().borders(Borders::ALL).title("Simulation Settings"))
+            .style(Style::default().bg(Color::Green).fg(Color::White));
+ 
         vec![
-            AppWidget::SpeciesList(species_list), // Use List for SpeciesList
-            AppWidget::LogoBlock(logo_block),
+            AppWidget::SpeciesList(species_list),
+            AppWidget::InfoBlock(info_block),
+            AppWidget::SettingsBlock(sim_settings_block),
         ]
     }
 
@@ -181,4 +231,13 @@ impl TabState {
             };
             self.list_state.select(Some(i));
         }
+}
+
+/// Structure to hold species data details
+#[derive(Debug, Clone, Default)]
+pub struct SpeciesData {
+    pub name: String,
+    pub genome_size: String,
+    pub exon_size: String,
+    pub exon_ratio: String,
 }

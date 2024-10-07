@@ -6,7 +6,7 @@ use ratatui::text::Span;
 use crate::widgets::app_widgets::AppWidget;
 use ratatui::widgets::ListState;
 
-pub fn create_home_widgets(species: &Vec<String>, list_state: &ListState) -> Vec<AppWidget> {
+pub fn create_home_widgets(species: &Vec<String>, _list_state: &ListState) -> Vec<AppWidget> {
     // Create a ListItem for each species
     let species_items: Vec<ListItem> = species
         .iter()
