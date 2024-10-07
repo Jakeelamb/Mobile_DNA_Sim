@@ -1,12 +1,11 @@
 // sim.rs
-
 use ratatui::widgets::{Paragraph};
 use ratatui::style::{Color};
 use crate::logo::get_ascii_sim; // Import the simulation logo function
-use super::Widget; // Import the Widget enum
-use crate::widgets::tabs::utils::{create_block}; // Import the create_block function
+use crate::widgets::utils::{create_block}; // Import the create_block function
+use crate::widgets::app_widgets::{AppWidget};
 
-pub fn create_sim_widgets() -> Vec<Widget> {
+pub fn create_sim_widgets() -> Vec<AppWidget> {
     // Simulation tab content
     let sim_logo = get_ascii_sim();
     let simulation_block = Paragraph::new(sim_logo)
@@ -16,7 +15,7 @@ pub fn create_sim_widgets() -> Vec<Widget> {
         .block(create_block("More Info", Color::Green));
 
     vec![
-        Widget::LogoBlock(simulation_block), 
-        Widget::LogoBlock(more_info_block),
+        AppWidget::LogoBlock(simulation_block), 
+        AppWidget::LogoBlock(more_info_block),
     ]
 }
