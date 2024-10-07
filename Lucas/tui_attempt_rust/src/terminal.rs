@@ -1,89 +1,108 @@
-//terminal.rs
-
-use ratatui::{
-    backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
-    Terminal,
-};
-use std::{io, error::Error};
+use crate::widgets::tabstate::TabState;
+use crate::widgets::app_widgets::AppWidget;
+use std::{error::Error, io};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use ratatui::{
+    backend::CrosstermBackend,
+    layout::{Constraint, Direction, Layout, Rect},
+    Terminal,
+    widgets::Widget,
+};
 
-use crate::widgets::tabs::tabstate::TabState;
-use crate::widgets::tabs; // Import the `tabs` module
-
-pub fn run_app() -> Result<(), Box<dyn Error>> {
-    // Setup terminal
-    enable_raw_mode()?;
+/// Set up the terminal with Crossterm backend
+fn setup_terminal() -> Result<Terminal<CrosstermBackend<io::Stdout>>, Box<dyn Error>> {
+    enable_raw_mode()?; // Enable raw mode
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+    let terminal = Terminal::new(backend)?;
+    Ok(terminal)
+}
 
-    // Initialize the tab state
-    let mut tab_state = TabState::new();
+/// Layout setup for the terminal chunks
+fn setup_chunks(area: Rect) -> Vec<Rect> {
+    Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3),  // Combined height for Tabs and Header
+            Constraint::Length(12),  // Header (logo)
+            Constraint::Min(15),    // Main content area
+            Constraint::Length(3),  // Footer area
+        ])
+        .split(area)
+        .to_vec() // Convert Rc<[Rect]> to Vec<Rect>
+}
+
+/// Main application function
+pub fn run_app() -> Result<(), Box<dyn Error>> {
+    let mut terminal = setup_terminal()?;
+    let mut tab_state = TabState::new(); // Initialize tab state
 
     loop {
         terminal.draw(|f| {
-            let size = f.area(); // The total available space in the terminal
-    
-            // Split the space vertically into chunks
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(3), // Allocate 3 lines for the tabs
-                    Constraint::Min(10),  // Ensure the first block gets at least 20 lines (e.g., for the logo)
-                    Constraint::Percentage(30), // Remaining space for other content
-                ].as_ref())
-                .split(size); // Split the available space into chunks
-    
-            // Render the Tabs widget in the first chunk (top 3 lines)
-            let tabs = tab_state.render(); // Get the tabs
-            f.render_widget(tabs, chunks[0]); // Render the tabs
+            let chunks = setup_chunks(f.area());
 
-            // Get the content blocks (Paragraphs, List, etc.) from `render_content`
-            let content_blocks = tab_state.render_content();
-    
-            // Render each block in the respective chunk
+            // Render the Tabs
+            let tabs = tab_state.render();
+            f.render_widget(tabs, chunks[0]);
+
+            // Render the Header
+            let header = tab_state.render_header();
+            f.render_widget(header, chunks[1]);
+
+            // Render the content area based on the active tab
+            let content_blocks = tab_state.render_home_widgets();
+            let content_chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    Constraint::Percentage(25), 
+                    Constraint::Percentage(50), 
+                    Constraint::Percentage(25)
+                ])
+                .split(chunks[2]);
+
             content_blocks.iter().enumerate().for_each(|(i, block)| {
-                let chunk = *chunks.get(i+1).unwrap_or(&chunks[1]); // Dereference to pass a `Rect` instead of `&Rect`
-                match block {
-                    tabs::Widget::SpeciesList(list) => {
-                        // let list_widget = tab_state.render_list();
-                        f.render_widget(list.clone(), chunk);
-                    }
-                    tabs::Widget::LogoBlock(paragraph) => {
-                        f.render_widget(paragraph.clone(), chunk);
+                if let Some(chunk) = content_chunks.get(i) {
+                    match block {
+                        AppWidget::SpeciesList(list) => f.render_stateful_widget(list.clone(), *chunk, &mut tab_state.list_state),
+                        AppWidget::LogoBlock(logo) => f.render_widget(logo.clone(), *chunk),
+                        AppWidget::InfoBlock(info) => f.render_widget(info.clone(), *chunk),
+                        AppWidget::SettingsBlock(settings) => f.render_widget(settings.clone(), *chunk),
+                        AppWidget::FooterBlock(footer) => f.render_widget(footer.clone(), *chunk),
                     }
                 }
             });
+
+            let footer = tab_state.render_footer();
+            f.render_widget(footer, chunks[3]);
         })?;
-        // Capture key events without polling
+
+        // Capture key events for scrolling and tab navigation
         if let Ok(event) = event::read() {
             match event {
-                Event::Key(key) => {
-                    // println!("Key pressed: {:?}", key.code); // Debug print
-                    match key.code {
-                        KeyCode::Char('q') => break, // Exit on 'q'
-                        KeyCode::Right => tab_state.next(), // Cycle to the next tab
-                        KeyCode::Left => tab_state.previous(), // Cycle to the previous tab
-                        KeyCode::Down => tab_state.scroll_down(), // Scroll down in the list
-                        KeyCode::Up => tab_state.scroll_up(), // Scroll up in the list
-                        _ => {}
-                    }   
-                }
+                Event::Key(key) => match key.code {
+                    KeyCode::Char('q') => break,
+                    KeyCode::Right => tab_state.next(),
+                    KeyCode::Left => tab_state.previous(),
+                    KeyCode::Down => tab_state.scroll_down(), // Scroll down in the species list
+                    KeyCode::Up => tab_state.scroll_up(),     // Scroll up in the species list
+                    _ => {}
+                },
                 _ => {}
             }
         }
     }
 
-
-// Restore terminal (Clean up terminal state)
     disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
     terminal.show_cursor()?;
     Ok(())
 }
