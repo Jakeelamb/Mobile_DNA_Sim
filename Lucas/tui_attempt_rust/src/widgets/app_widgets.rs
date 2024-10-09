@@ -1,6 +1,5 @@
 // src/widgets/app_widgets.rs
 use ratatui::widgets::{List, Paragraph, Widget};
-use std::fs;
 
 #[derive(Clone)]
 pub enum AppWidget {
@@ -25,23 +24,15 @@ impl AppWidget {
 
 // Logo functions for different tabs
 // pub fn get_ascii_logo() -> String {
-//     String::from("MobileDNA Sim")
+//     fs::read_to_string("img/logo2.txt")
+//         .expect("Failed to read logo.txt")
+//         .trim()
+//         .to_string()
 // }
 
 // pub fn get_ascii_sim() -> String {
-//     String::from("Simulation Settings")
+//     fs::read_to_string("img/simulation.txt")
+//         .expect("Failed to read simulation.txt")
+//         .trim()
+//         .to_string()
 // }
-
-pub fn get_ascii_logo() -> String {
-    fs::read_to_string("img/logo2.txt")
-        .expect("Failed to read logo.txt")
-        .trim()
-        .to_string()
-}
-
-pub fn get_ascii_sim() -> String {
-    fs::read_to_string("img/simulation.txt")
-        .expect("Failed to read simulation.txt")
-        .trim()
-        .to_string()
-}

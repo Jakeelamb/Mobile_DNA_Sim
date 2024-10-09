@@ -89,6 +89,32 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                     KeyCode::Left => tab_state.previous(),
                     KeyCode::Down => tab_state.scroll_down(),
                     KeyCode::Up => tab_state.scroll_up(),
+
+                    // Handle text input for the active field
+                    KeyCode::Char(c) => {
+                        match tab_state.active_input {
+                            0 => tab_state.starting_tes.push(c),  // Edit Starting TEs
+                            1 => tab_state.sim_rounds.push(c),    // Edit Simulation Rounds
+                            2 => tab_state.cpu_cores.push(c),     // Edit CPU cores
+                            3 => tab_state.output_dir.push(c),    // Edit Output Directory
+                            _ => {}
+                        }
+                    }
+                    // Remove the last character from the active field
+                    KeyCode::Backspace => {
+                        match tab_state.active_input {
+                            0 => { tab_state.starting_tes.pop(); }
+                            1 => { tab_state.sim_rounds.pop(); }
+                            2 => { tab_state.cpu_cores.pop(); }
+                            3 => { tab_state.output_dir.pop(); }
+                            _ => {}
+                        }
+                    }
+                    // Switch to the next field using Tab
+                    KeyCode::Tab => {
+                        tab_state.active_input = (tab_state.active_input + 1) % 4; // Rotate through the four fields
+                    }
+
                     _ => {}
                 },
                 _ => {}
