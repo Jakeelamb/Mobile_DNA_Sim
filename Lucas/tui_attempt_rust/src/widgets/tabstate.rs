@@ -1,7 +1,7 @@
 // src/widgets/tabstate.rs
 use crate::widgets::app_widgets::AppWidget;
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Tabs};
-use ratatui::style::{Style, Color};
+use ratatui::style::{Style, Color, Modifier};
 use ratatui::text::{Span, Line};
 use ratatui::widgets::ListState;
 use std::collections::HashMap;
@@ -16,11 +16,11 @@ pub struct TabState {
     pub species: Vec<String>,       // List of species for the home tab
     pub list_state: ListState,      // State management for the species list
     pub species_info: HashMap<String, SpeciesData>, // Species data for the info block
-    // pub starting_tes: String,       // Store user input for Starting TEs
-    // pub sim_rounds: String,         // Store user input for Simulation Rounds
-    // pub cpu_cores: String,          // Store user input for CPU Cores
-    // pub output_dir: String,         // Store user input for Output Directory
-    // pub active_input: usize,        // Track which input field is active
+    pub starting_tes: String,       // Store user input for Starting TEs
+    pub sim_rounds: String,         // Store user input for Simulation Rounds
+    pub cpu_cores: String,          // Store user input for CPU Cores
+    pub output_dir: String,         // Store user input for Output Directory
+    pub active_input: usize,        // Track which input field is active
 }
 
 #[derive(Deserialize, Debug)]
@@ -45,20 +45,20 @@ impl TabState {
 
          // Load species list from JSON file
         let species = load_species_list("data/species.json");
-
         let species_info = TabState::load_species_data();
+
             TabState { index: 0, species, list_state: state, species_info,
-                // starting_tes: "500".to_string(),
-                // sim_rounds: "10000".to_string(),
-                // cpu_cores: "16".to_string(),
-                // output_dir: "Results".to_string(),
-                // active_input: 0 
+                starting_tes: "500".to_string(),
+                sim_rounds: "10000".to_string(),
+                cpu_cores: "16".to_string(),
+                output_dir: "Results".to_string(),
+                active_input: 0 
         } 
         }
 
         pub fn load_species_data() -> HashMap<String, SpeciesData> {
             // Replace with path to your JSON file
-            let file_path = "species_data.json"; 
+            let file_path = "data/species_all.json"; 
             let mut species_data = HashMap::new();
             if let Ok(data) = std::fs::read_to_string(file_path) {
                 let parsed: Value = serde_json::from_str(&data).unwrap();
@@ -145,26 +145,59 @@ impl TabState {
 
         // Create a List widget with species items
         let species_list = List::new(species_items)
-            .block(Block::default().borders(Borders::ALL).title("Species List"))
+            .block(Block::default().borders(Borders::ALL).title("Species List\n"))
             .style(Style::default().fg(Color::Black).bg(Color::White))
             .highlight_style(Style::default().fg(Color::Black).bg(Color::Yellow)); // Highlighted item style
 
+        let sim_settings_lines = vec![
+            // Line::from(Span::styled("[Use <Tab> to scroll]", Style::default().fg(Color::White).add_modifier(Modifier::BOLD))),
+            Line::from(""),  // Empty line to create space
+            Line::from(Span::styled(
+                format!("Starting TEs: {}", self.starting_tes),
+                Style::default()
+                    .fg(if self.active_input == 0 { Color::Yellow } else { Color::White })
+                    .bg(if self.active_input == 0 { Color::Blue } else { Color::Green }),
+            )),
+            Line::from(Span::styled(
+                format!("Simulation Rounds: {}", self.sim_rounds),
+                Style::default()
+                    .fg(if self.active_input == 1 { Color::Yellow } else { Color::White })
+                    .bg(if self.active_input == 1 { Color::Blue } else { Color::Green }),
+            )),
+            Line::from(Span::styled(
+                format!("CPU Cores: {}", self.cpu_cores),
+                Style::default()
+                    .fg(if self.active_input == 2 { Color::Yellow } else { Color::White })
+                    .bg(if self.active_input == 2 { Color::Blue } else { Color::Green }),
+            )),
+            Line::from(Span::styled(
+                format!("Output Directory Path: {}", self.output_dir),
+                Style::default()
+                    .fg(if self.active_input == 3 { Color::Yellow } else { Color::White })
+                    .bg(if self.active_input == 3 { Color::Blue } else { Color::Green }),
+            )),
+        ];
+    
+
          // Create Species Info block
         let selected_species = self.species.get(self.list_state.selected().unwrap_or(0)).unwrap();
+
         let species_info = self.species_info.get(selected_species).cloned().unwrap_or(SpeciesData::default());
+
         let species_info_text = format!(
-            "Species: {}\nGenome Size: {}\nExon Size: {}\nExon/Genome Ratio: {}",
+            "\nSpecies: {}\nGenome Size: {}\nExon Size: {}\nExon/Genome Ratio: {}",
             species_info.name, species_info.genome_size, species_info.exon_size, species_info.exon_ratio
         );
+
         let info_block = Paragraph::new(species_info_text)
-            .block(Block::default().borders(Borders::ALL).title("Species Info"))
+            .block(Block::default().borders(Borders::ALL).title("Species Info\n"))
             .style(Style::default().bg(Color::Blue).fg(Color::White));
- 
-         // Create Simulation Settings block
-        let sim_settings_text = "Simulation Settings\nStarting TEs: 500\nSimulation Rounds: 10000\nCPU cores: 16\nOutput Directory Path: Results";
-        let sim_settings_block = Paragraph::new(sim_settings_text)
-            .block(Block::default().borders(Borders::ALL).title("Simulation Settings"))
+
+        // Use the Spans to create a Paragraph for Simulation Settings
+        let sim_settings_block = Paragraph::new(sim_settings_lines)
+            .block(Block::default().borders(Borders::ALL).title("Simulation Settings [Use <Tab> to scroll]"))
             .style(Style::default().bg(Color::Green).fg(Color::White));
+            // .add_modifier(Modifier::BOLD));
  
         vec![
             AppWidget::SpeciesList(species_list),
