@@ -1,11 +1,13 @@
+use crate::plots::Plotter;
 use rand::distributions::{Distribution, Uniform};
 use rand::Rng;
 use std::path::Path;
+use std::thread;
 use crate::data_process::{Record, convert_csv_to_list};
 use rayon::prelude::*;  
 use std::sync::atomic::{AtomicUsize, Ordering};
 use rusqlite::{params, Connection, Result as SqliteResult};
-use std::time::Instant;
+use std::time::{Instant, Duration};
 
 #[derive(Clone, Debug)]
 pub struct SimulationParam {
@@ -68,9 +70,10 @@ impl SimulationParam {
         self.te_in_noncoding += local_te_in_noncoding.load(Ordering::Relaxed);
 
         println!(
-            "Round {}: {} mutations",
+            "Round {}: {} mutations for {}",
             self.simulation_round,
-            round_mutations
+            round_mutations,
+            self.species
         );
 
         self.store_results(conn)?;
@@ -112,14 +115,28 @@ pub fn get_te_lengths(num_active_te: usize) -> Vec<usize> {
     }).collect()
 }
 
-pub fn select_first_species() -> Result<Record, Box<dyn std::error::Error>> {
+pub fn get_all_species() -> Result<Vec<Record>, Box<dyn std::error::Error>> {
     let path = Path::new("Data/Species_data.csv");
-    let records = convert_csv_to_list(path.to_str().unwrap())?;
-    records.first().cloned().ok_or_else(|| "No species found in the CSV file".into())
+    convert_csv_to_list(path.to_str().unwrap())
+}
+
+pub fn select_species(species_list: &[Record], species_name: Option<&str>) -> Vec<Record> {
+    match species_name {
+        Some(name) => species_list.iter()
+            .filter(|&s| s.species == name)
+            .cloned()
+            .collect(),
+        None => species_list.to_vec(),
+    }
 }
 
 pub fn create_db() -> SqliteResult<Connection> {
-    let conn = Connection::open("simulation_results.db")?;
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let db_name = format!("simulation_results_{}.db", timestamp);
+    let conn = Connection::open(db_name)?;
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS simulation_results (
@@ -144,22 +161,67 @@ pub fn create_db() -> SqliteResult<Connection> {
     Ok(conn)
 }
 
-pub fn run_simulation(num_rounds: usize) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run_simulation(num_rounds: usize, species_name: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
     let start_time = Instant::now();
-    let selected_species = select_first_species()?;
-    let mut param = SimulationParam::new(&selected_species);
-    let conn = create_db()?;
-
-    let mut total_mutations = 0;
-    for _ in 0..num_rounds {
-        total_mutations += param.run_simulation_round(&conn)?;
+    let all_species = get_all_species()?;
+    let selected_species = select_species(&all_species, species_name);
+    
+    if selected_species.is_empty() {
+        return Err("No species found matching the given name".into());
     }
+
+    let total_mutations: usize = selected_species.par_iter().map(|species| {
+        let conn = create_db().expect("Failed to create database connection");
+        let mut param = SimulationParam::new(species);
+        let mut species_mutations = 0;
+        for _ in 0..num_rounds {
+            species_mutations += param.run_simulation_round(&conn).unwrap_or(0);
+        }
+        println!("Completed simulation for species: {}", species.species);
+        species_mutations
+    }).sum();
 
     let duration = start_time.elapsed();
     println!("Simulation complete:");
-    println!("  Number of rounds: {}", num_rounds);
-    println!("  Total mutations: {}", total_mutations);
+    println!("  Number of species: {}", selected_species.len());
+    println!("  Number of rounds per species: {}", num_rounds);
+    println!("  Total mutations across all species: {}", total_mutations);
     println!("  Time taken: {:?}", duration);
+
+    Ok(())
+}
+
+pub fn run_simulation_with_plot(num_rounds: usize, species_name: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+    let all_species = get_all_species()?;
+    let selected_species = select_species(&all_species, species_name);
+    
+    if selected_species.is_empty() {
+        return Err("No species found matching the given name".into());
+    }
+
+    // Initialize the plotter
+    let mut plotter = Plotter::new(num_rounds, 1000);
+
+    let mut round = 0;
+    
+    for species in selected_species {
+        let conn = create_db().expect("Failed to create database connection");
+        let mut param = SimulationParam::new(&species);
+
+        for _ in 0..num_rounds {
+            round += 1;
+            let mutations = param.run_simulation_round(&conn)?;
+
+            // Update the plot with the new data
+            plotter.update((round as i32, mutations as i32));
+
+            // Optional delay to simulate real-time updates
+            thread::sleep(Duration::from_millis(50));
+        }
+    }
+
+    // Run the plotter to display the chart
+    plotter.run()?;
 
     Ok(())
 }
