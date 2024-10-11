@@ -23,3 +23,4 @@ pub fn convert_csv_to_list(path: &str) -> Result<Vec<Record>, Box<dyn Error>> {
     }
     Ok(records)
 }
+
