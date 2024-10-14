@@ -116,7 +116,7 @@ pub fn get_te_lengths(num_active_te: usize) -> Vec<usize> {
 }
 
 pub fn get_all_species() -> Result<Vec<Record>, Box<dyn std::error::Error>> {
-    let path = Path::new("Data/Species_data.csv");
+    let path = Path::new("Data/grouped_simplified_Species_genomesize_exon.csv");
     convert_csv_to_list(path.to_str().unwrap())
 }
 
