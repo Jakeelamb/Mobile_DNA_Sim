@@ -10,7 +10,7 @@ pub struct Record {
     pub genome_size: u64,
     #[serde(rename = "Num_exons")]
     pub exons: u64,
-    #[serde(rename = "Assembly")]
+    #[serde(rename = "Domain")]
     pub assembly: String,
 }
 
