@@ -1,13 +1,11 @@
-use crate::plots::Plotter;
 use rand::distributions::{Distribution, Uniform};
 use rand::Rng;
 use std::path::Path;
-use std::thread;
 use crate::data_process::{Record, convert_csv_to_list};
 use rayon::prelude::*;  
 use std::sync::atomic::{AtomicUsize, Ordering};
 use rusqlite::{params, Connection, Result as SqliteResult};
-use std::time::{Instant, Duration};
+use std::time::Instant;
 
 #[derive(Clone, Debug)]
 pub struct SimulationParam {
@@ -174,10 +172,20 @@ pub fn run_simulation(num_rounds: usize, species_name: Option<&str>) -> Result<(
         let conn = create_db().expect("Failed to create database connection");
         let mut param = SimulationParam::new(species);
         let mut species_mutations = 0;
+        let exon_genome_ratio: f64 = (param.exon_end_range as f64 / species.genome_size as f64) * 100.0;
         for _ in 0..num_rounds {
             species_mutations += param.run_simulation_round(&conn).unwrap_or(0);
         }
+        
+        // Report additional information
         println!("Completed simulation for species: {}", species.species);
+        println!("  Starting genome size: {}", species.genome_size);
+        println!("  Starting number of exons: {}", param.exon_end_range);
+        println!("  Exon to Genome ratio is ~: {:.2}%", exon_genome_ratio);
+        println!("  Number of active TEs: {}", param.active_te);
+        println!("  TE mobility probability: {}", param.te_mobilize_prob);
+        println!("  Mean number of mutations per round: {:.2}", species_mutations as f64 / num_rounds as f64);
+
         species_mutations
     }).sum();
 
@@ -185,43 +193,8 @@ pub fn run_simulation(num_rounds: usize, species_name: Option<&str>) -> Result<(
     println!("Simulation complete:");
     println!("  Number of species: {}", selected_species.len());
     println!("  Number of rounds per species: {}", num_rounds);
-    println!("  Total mutations across all species: {}", total_mutations);
+    println!("  Total mutations across all rounds: {}", total_mutations);
     println!("  Time taken: {:?}", duration);
-
-    Ok(())
-}
-
-pub fn run_simulation_with_plot(num_rounds: usize, species_name: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
-    let all_species = get_all_species()?;
-    let selected_species = select_species(&all_species, species_name);
-    
-    if selected_species.is_empty() {
-        return Err("No species found matching the given name".into());
-    }
-
-    // Initialize the plotter
-    let mut plotter = Plotter::new(num_rounds, 1000);
-
-    let mut round = 0;
-    
-    for species in selected_species {
-        let conn = create_db().expect("Failed to create database connection");
-        let mut param = SimulationParam::new(&species);
-
-        for _ in 0..num_rounds {
-            round += 1;
-            let mutations = param.run_simulation_round(&conn)?;
-
-            // Update the plot with the new data
-            plotter.update((round as i32, mutations as i32));
-
-            // Optional delay to simulate real-time updates
-            thread::sleep(Duration::from_millis(50));
-        }
-    }
-
-    // Run the plotter to display the chart
-    plotter.run()?;
 
     Ok(())
 }
