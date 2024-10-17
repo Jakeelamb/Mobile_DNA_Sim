@@ -2,13 +2,14 @@
 use crate::widgets::app_widgets::AppWidget;
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Tabs};
 use ratatui::style::{Style, Color, Modifier};
-use ratatui::text::{Span, Line};
+use ratatui::text::{Span, Line, Text};
 use ratatui::widgets::ListState;
 use std::collections::HashMap;
 use serde_json::Value; // Import Value from serde_json for JSON parsing
 use serde::Deserialize;
 use std::fs;
 use crate::logo::{get_ascii_logo, get_ascii_sim}; // Import the logo functions
+use crate::widgets::sim_renderer::render_sim_widgets;
 
 /// Holds the state and information for the application
 pub struct TabState {
@@ -21,6 +22,17 @@ pub struct TabState {
     pub cpu_cores: String,          // Store user input for CPU Cores
     pub output_dir: String,         // Store user input for Output Directory
     pub active_input: usize,        // Track which input field is active
+
+    pub current_species: String,    // Current species for simulation
+    pub start_genome_size: String,  // Start genome size for simulation
+    pub start_exon_size: String,    // Start exon size for simulation
+    pub exon_genome_ratio: String,
+    pub simulation_rounds_completed: usize,
+    pub tes_mobilized: usize,
+    pub mutations: usize,
+    pub current_genome_size: String,
+    pub current_exon_genome_ratio: String,
+    pub probability_of_te_mutation: f64,
 }
 
 #[derive(Deserialize, Debug)]
@@ -48,11 +60,22 @@ impl TabState {
         let species_info = TabState::load_species_data();
 
             TabState { index: 0, species, list_state: state, species_info,
+                current_species: "T-rex".to_string(),
+                start_genome_size: "3000".to_string(),
+                start_exon_size: "1000".to_string(),
+                exon_genome_ratio: "0.33".to_string(),
+                simulation_rounds_completed: 0,
+                tes_mobilized: 0,
+                mutations: 0,
+                current_genome_size: "3000".to_string(),
+                current_exon_genome_ratio: "0.33".to_string(),
+                probability_of_te_mutation: 0.01,
+
                 starting_tes: "500".to_string(),
                 sim_rounds: "10000".to_string(),
                 cpu_cores: "16".to_string(),
                 output_dir: "Results".to_string(),
-                active_input: 0 
+                active_input: 0
         } 
         }
 
@@ -206,16 +229,79 @@ impl TabState {
         ]
     }
 
-    /// Helper function to render widgets for the Simulation tab
-    fn render_sim_widgets(&self) -> Vec<AppWidget> {
-        let simulation_info = Paragraph::new("Simulation Info Block");
-        let settings_block = Paragraph::new("Simulation Settings Block");
+    // ------ SIMULATION TAB ------
 
-        vec![
-            AppWidget::InfoBlock(simulation_info),
-            AppWidget::SettingsBlock(settings_block),
-        ]
-    }
+    /// Helper function to render widgets for the Simulation tab
+    // fn render_sim_widgets(&self) -> Vec<AppWidget> {
+    //     let simulation_info = Paragraph::new("Simulation Info Block");
+    //     let settings_block = Paragraph::new("Simulation Settings Block");
+
+    //     vec![
+    //         AppWidget::InfoBlock(simulation_info),
+    //         AppWidget::SettingsBlock(settings_block),
+    //     ]
+    // }
+
+/// Helper function to render widgets for the Simulation tab
+
+pub fn start_simulation(&mut self) {
+    // Implement the simulation start logic here
+    println!("yo!!!!!!!!!!");   
+    // println!("Simulation started for species: {}", self.current_species);
+    
+    // Simulation logic goes here, e.g., modifying state, running the simulation, etc.
+}
+
+// fn render_sim_widgets(&self) -> Vec<AppWidget> {
+//     let start_button = Paragraph::new(Span::styled(
+//         "Start Simulation",
+//         Style::default()
+//             .fg(Color::White)
+//             .bg(Color::Gray)
+//             .add_modifier(Modifier::BOLD),
+//     ))
+//     .block(Block::default().borders(Borders::ALL).title(""));
+
+//       // Dynamically populate simulation info
+//     let species_info_text = vec![
+//         Span::raw(format!("Species: {}\n", tab_state.current_species)),
+//         Span::raw(format!("Start Genome Size: {}\n", tab_state.start_genome_size)),
+//         Span::raw(format!("Start Exon Size: {}\n", tab_state.start_exon_size)),
+//         Span::raw(format!("Exon/Genome Ratio: {}\n", tab_state.exon_genome_ratio)),
+//         Span::raw(format!("# of Simulation Rounds completed: {}\n", tab_state.simulation_rounds_completed)),
+//         Span::raw(format!("# of TEs mobilized: {}\n", tab_state.tes_mobilized)),
+//         Span::raw(format!("# of Mutations: {}\n", tab_state.mutations)),
+//         Span::raw(format!("Current Genome Size: {}\n", tab_state.current_genome_size)),
+//         Span::raw(format!("Current Exon/Genome Ratio: {}\n", tab_state.current_exon_genome_ratio)),
+//         Span::raw(format!("Current Probability of TE causing Mutation: {}\n", tab_state.probability_of_te_mutation)),
+//     ];
+
+//     // Create a Paragraph with the dynamic information
+//     let simulation_info = Paragraph::new(species_info_text).block(
+//         Block::default()
+//             .borders(Borders::ALL)
+//             .title("Simulation Info"),
+//     );
+
+//     // Convert `Vec<Line>` to `Text`
+//     let simulation_info = Paragraph::new(Text::from(info_text)).block(
+//         Block::default()
+//             .borders(Borders::ALL)
+//             .title("Simulation Info"),
+//     );
+
+//     let settings_block = Paragraph::new("Simulation Settings Block")
+//         .block(Block::default().borders(Borders::ALL).title("Settings"));
+
+//     vec![
+//         AppWidget::InfoBlock(start_button),
+//         AppWidget::InfoBlock(simulation_info),
+//         AppWidget::SettingsBlock(settings_block),
+//     ]
+// }
+
+
+    // ------ FOOTER -------------
 
     /// Render a footer for the UI
     pub fn render_footer(&self) -> Paragraph {
@@ -224,6 +310,8 @@ impl TabState {
             .style(Style::default().fg(Color::Black)
             .bg(Color::White))
     }
+
+    // ------ INPUT HANDLING ------
 
     pub fn next(&mut self) {
         self.index = (self.index + 1) % 2;
@@ -265,6 +353,10 @@ impl TabState {
             self.list_state.select(Some(i));
         }
 }
+
+// ------ END Input Handling -------
+
+// ------ SPECIES DATA STRUCT ------
 
 /// Structure to hold species data details
 #[derive(Debug, Clone, Default)]
