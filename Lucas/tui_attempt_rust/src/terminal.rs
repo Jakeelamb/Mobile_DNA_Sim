@@ -1,3 +1,6 @@
+// Original code below
+
+
 use crate::widgets::tabstate::TabState;
 use crate::widgets::app_widgets::AppWidget;
 use std::{error::Error, io};
@@ -34,6 +37,8 @@ fn setup_chunks(area: Rect) -> Vec<Rect> {
         .split(area)
         .to_vec() // Convert Rc<[Rect]> to Vec<Rect>
 }
+
+
 
 /// Main application function
 pub fn run_app() -> Result<(), Box<dyn Error>> {
@@ -89,6 +94,12 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                     KeyCode::Left => tab_state.previous(),
                     KeyCode::Down => tab_state.scroll_down(),
                     KeyCode::Up => tab_state.scroll_up(),
+
+                    KeyCode::Enter => {
+                        if tab_state.active_input == 0 { // Assuming active_input == 0 refers to the "Start Simulation" button
+                            tab_state.start_simulation();  // Trigger the simulation
+                        }
+                    }
 
                     // Handle text input for the active field
                     KeyCode::Char(c) => {
