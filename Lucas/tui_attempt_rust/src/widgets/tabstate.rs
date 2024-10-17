@@ -1,8 +1,10 @@
 // src/widgets/tabstate.rs
 use crate::widgets::app_widgets::AppWidget;
+use crate::widgets::sim_renderer::render_sim_widgets;
+use crate::widgets::home_renderer::render_home_widgets;
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Tabs};
 use ratatui::style::{Style, Color, Modifier};
-use ratatui::text::{Span, Line};
+use ratatui::text::{Span, Line, Text};
 use ratatui::widgets::ListState;
 use std::collections::HashMap;
 use serde_json::Value; // Import Value from serde_json for JSON parsing
@@ -21,6 +23,17 @@ pub struct TabState {
     pub cpu_cores: String,          // Store user input for CPU Cores
     pub output_dir: String,         // Store user input for Output Directory
     pub active_input: usize,        // Track which input field is active
+
+    pub current_species: String,    // Current species for simulation
+    pub start_genome_size: String,  // Start genome size for simulation
+    pub start_exon_size: String,    // Start exon size for simulation
+    pub exon_genome_ratio: String,
+    pub simulation_rounds_completed: usize,
+    pub tes_mobilized: usize,
+    pub mutations: usize,
+    pub current_genome_size: String,
+    pub current_exon_genome_ratio: String,
+    pub probability_of_te_mutation: f64,
 }
 
 #[derive(Deserialize, Debug)]
@@ -48,11 +61,22 @@ impl TabState {
         let species_info = TabState::load_species_data();
 
             TabState { index: 0, species, list_state: state, species_info,
+                current_species: "T-rex".to_string(),
+                start_genome_size: "3000".to_string(),
+                start_exon_size: "1000".to_string(),
+                exon_genome_ratio: "0.33".to_string(),
+                simulation_rounds_completed: 0,
+                tes_mobilized: 0,
+                mutations: 0,
+                current_genome_size: "3000".to_string(),
+                current_exon_genome_ratio: "0.33".to_string(),
+                probability_of_te_mutation: 0.01,
+
                 starting_tes: "500".to_string(),
                 sim_rounds: "10000".to_string(),
                 cpu_cores: "16".to_string(),
                 output_dir: "Results".to_string(),
-                active_input: 0 
+                active_input: 0
         } 
         }
 
@@ -93,178 +117,21 @@ impl TabState {
 
     pub fn render_content(&self) -> Vec<AppWidget> {
         match self.index {
-            0 => self.render_home_widgets(),  // Render widgets for the Home tab
-            1 => self.render_sim_widgets(),   // Render widgets for the Simulation tab
-            _ => self.render_home_widgets(),
+            0 => render_home_widgets(self),  // Render widgets for the Home tab
+            1 => render_sim_widgets(self),   // Render widgets for the Simulation tab (don't need to do self.render_sim_widgets() now)
+            _ => render_home_widgets(self),
         }
     }
 
-    pub fn render_header(&self) -> Paragraph {
-        // Choose header text and colors based on the active tab index
-        let (header_text, title_color, text_color, bg_color) = match self.index {
-            0 => (
-                get_ascii_logo(),         // Text for Home tab
-                Color::Green,             // Block title color for Home tab
-                Color::Blue,              // Text color for Home tab
-                Color::Black,             // Background color for Home tab
-            ),
-            1 => (
-                get_ascii_sim(),          // Text for Simulation tab
-                Color::Yellow,            // Block title color for Simulation tab
-                Color::Red,               // Text color for Simulation tab
-                Color::Black,             // Background color for Simulation tab
-            ),
-            _ => (
-                get_ascii_logo(),         // Default to Home logo
-                Color::White,
-                Color::Gray,
-                Color::Black,
-            ),
-        };
-
-        // Create the block using the dynamic colors
-        Paragraph::new(header_text)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    // .title("Header Title")
-                    .style(Style::default().bg(bg_color))
-                    .border_style(Style::default().fg(title_color)), // Use title color
-            )
-            .style(Style::default().fg(text_color).bg(bg_color)) // Apply text color and background color
-    }
-
-     /// Helper function to render widgets for the Home tab
-    pub fn render_home_widgets(&self) -> Vec<AppWidget> {
-        // Create a List widget for the species
-        let species_items: Vec<ListItem> = self
-            .species
-            .iter()
-            .map(|species_name| ListItem::new(Span::from(species_name.clone()))) // Use `Span::from` for each species
-            .collect();
-
-        // Create a List widget with species items
-        let species_list = List::new(species_items)
-            .block(Block::default().borders(Borders::ALL).title("Species List\n"))
-            .style(Style::default().fg(Color::Black).bg(Color::White))
-            .highlight_style(Style::default().fg(Color::Black).bg(Color::Yellow)); // Highlighted item style
-
-        let sim_settings_lines = vec![
-            // Line::from(Span::styled("[Use <Tab> to scroll]", Style::default().fg(Color::White).add_modifier(Modifier::BOLD))),
-            Line::from(""),  // Empty line to create space
-            Line::from(Span::styled(
-                format!("Starting TEs: {}", self.starting_tes),
-                Style::default()
-                    .fg(if self.active_input == 0 { Color::Yellow } else { Color::White })
-                    .bg(if self.active_input == 0 { Color::Blue } else { Color::Green }),
-            )),
-            Line::from(Span::styled(
-                format!("Simulation Rounds: {}", self.sim_rounds),
-                Style::default()
-                    .fg(if self.active_input == 1 { Color::Yellow } else { Color::White })
-                    .bg(if self.active_input == 1 { Color::Blue } else { Color::Green }),
-            )),
-            Line::from(Span::styled(
-                format!("CPU Cores: {}", self.cpu_cores),
-                Style::default()
-                    .fg(if self.active_input == 2 { Color::Yellow } else { Color::White })
-                    .bg(if self.active_input == 2 { Color::Blue } else { Color::Green }),
-            )),
-            Line::from(Span::styled(
-                format!("Output Directory Path: {}", self.output_dir),
-                Style::default()
-                    .fg(if self.active_input == 3 { Color::Yellow } else { Color::White })
-                    .bg(if self.active_input == 3 { Color::Blue } else { Color::Green }),
-            )),
-        ];
-    
-
-         // Create Species Info block
-        let selected_species = self.species.get(self.list_state.selected().unwrap_or(0)).unwrap();
-
-        let species_info = self.species_info.get(selected_species).cloned().unwrap_or(SpeciesData::default());
-
-        let species_info_text = format!(
-            "\nSpecies: {}\nGenome Size: {}\nExon Size: {}\nExon/Genome Ratio: {}",
-            species_info.name, species_info.genome_size, species_info.exon_size, species_info.exon_ratio
-        );
-
-        let info_block = Paragraph::new(species_info_text)
-            .block(Block::default().borders(Borders::ALL).title("Species Info\n"))
-            .style(Style::default().bg(Color::Blue).fg(Color::White));
-
-        // Use the Spans to create a Paragraph for Simulation Settings
-        let sim_settings_block = Paragraph::new(sim_settings_lines)
-            .block(Block::default().borders(Borders::ALL).title("Simulation Settings [Use <Tab> to scroll]"))
-            .style(Style::default().bg(Color::Green).fg(Color::White));
-            // .add_modifier(Modifier::BOLD));
- 
-        vec![
-            AppWidget::SpeciesList(species_list),
-            AppWidget::InfoBlock(info_block),
-            AppWidget::SettingsBlock(sim_settings_block),
-        ]
-    }
-
-    /// Helper function to render widgets for the Simulation tab
-    fn render_sim_widgets(&self) -> Vec<AppWidget> {
-        let simulation_info = Paragraph::new("Simulation Info Block");
-        let settings_block = Paragraph::new("Simulation Settings Block");
-
-        vec![
-            AppWidget::InfoBlock(simulation_info),
-            AppWidget::SettingsBlock(settings_block),
-        ]
-    }
-
-    /// Render a footer for the UI
-    pub fn render_footer(&self) -> Paragraph {
-        Paragraph::new("Created by: Jake & Lucas, Version: 1.0")
-            .block(Block::default().borders(Borders::ALL))
-            .style(Style::default().fg(Color::Black)
-            .bg(Color::White))
-    }
-
-    pub fn next(&mut self) {
-        self.index = (self.index + 1) % 2;
-    }
-
-    pub fn previous(&mut self) {
-        if self.index > 0 {
-            self.index -= 1;
-        }
-    }
-
-        /// Move the selected item up in the list
-        pub fn scroll_up(&mut self) {
-            let i = match self.list_state.selected() {
-                Some(i) => {
-                    if i == 0 {
-                        self.species.len() - 1 // Wrap around to the bottom
-                    } else {
-                        i - 1
-                    }
-                }
-                None => 0,
-            };
-            self.list_state.select(Some(i));
-        }
-    
-        /// Move the selected item down in the list
-        pub fn scroll_down(&mut self) {
-            let i = match self.list_state.selected() {
-                Some(i) => {
-                    if i >= self.species.len() - 1 {
-                        0 // Wrap around to the top
-                    } else {
-                        i + 1
-                    }
-                }
-                None => 0,
-            };
-            self.list_state.select(Some(i));
-        }
+/// Helper function to render widgets for the Simulation tab
+pub fn start_simulation(&mut self) {
+    // Implement the simulation start logic here
+    println!("yo!!!!!!!!!!");   
+    // println!("Simulation started for species: {}", self.current_species);
+    // Simulation logic goes here, e.g., modifying state, running the simulation, etc.
 }
+}
+// ------ SPECIES DATA STRUCT ------
 
 /// Structure to hold species data details
 #[derive(Debug, Clone, Default)]

@@ -1,5 +1,10 @@
+// terminal.rs
 use crate::widgets::tabstate::TabState;
 use crate::widgets::app_widgets::AppWidget;
+use crate::widgets::footer_renderer::render_footer;
+use crate::widgets::header_renderer::render_header;
+use crate::widgets::input_handler::{next, previous, scroll_up, scroll_down};
+
 use std::{error::Error, io};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -35,6 +40,8 @@ fn setup_chunks(area: Rect) -> Vec<Rect> {
         .to_vec() // Convert Rc<[Rect]> to Vec<Rect>
 }
 
+
+
 /// Main application function
 pub fn run_app() -> Result<(), Box<dyn Error>> {
     let mut terminal = setup_terminal()?;
@@ -49,7 +56,7 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
             f.render_widget(tabs, chunks[0]);
 
             // Render the Header
-            let header = tab_state.render_header();
+            let header = render_header(&tab_state);
             f.render_widget(header, chunks[1]);
 
             //  Render the content area based on the active tab
@@ -77,18 +84,29 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                 }
             });
 
-            let footer = tab_state.render_footer();
+            let footer = render_footer();
             f.render_widget(footer, chunks[3]);
+            // let footer = tab_state.render_footer();
+            // f.render_widget(footer, chunks[3]);
         })?;
 
         if let Ok(event) = event::read() {
             match event {
                 Event::Key(key) => match key.code {
                     KeyCode::Char('q') => break,
-                    KeyCode::Right => tab_state.next(),
-                    KeyCode::Left => tab_state.previous(),
-                    KeyCode::Down => tab_state.scroll_down(),
-                    KeyCode::Up => tab_state.scroll_up(),
+                    KeyCode::Right => next(&mut tab_state),  // Call the function from input_handler
+                    KeyCode::Left => previous(&mut tab_state),  // Call the function from input_handler
+                    KeyCode::Down => scroll_down(&mut tab_state),  // Call the function from input_handler
+                    KeyCode::Up => scroll_up(&mut tab_state),  // Call the function from input_handler
+
+                    // Use Later to start simulation, but only want enter to work on simulation page. maybe i can use
+                    // point and click here. 
+
+                    // KeyCode::Enter => {
+                    //     if tab_state.active_input == 0 { // Assuming active_input == 0 refers to the "Start Simulation" button
+                    //         tab_state.start_simulation();  // Trigger the simulation
+                    //     }
+                    // }
 
                     // Handle text input for the active field
                     KeyCode::Char(c) => {
