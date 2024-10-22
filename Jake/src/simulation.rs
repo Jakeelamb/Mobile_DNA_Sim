@@ -6,6 +6,9 @@ use rayon::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use rusqlite::{params, Connection, Result as SqliteResult};
 use std::time::Instant;
+use std::error::Error;
+use std::fs::create_dir_all;
+use csv::Writer;
 
 #[derive(Clone, Debug)]
 pub struct SimulationParam {
@@ -159,7 +162,69 @@ pub fn create_db() -> SqliteResult<Connection> {
     Ok(conn)
 }
 
-pub fn run_simulation(num_rounds: usize, species_name: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+pub fn convert_db_to_csv(db_path: &Path, output_dir: &Path) -> Result<(), Box<dyn Error>> {
+    // Create output directory if it doesn't exist
+    create_dir_all(output_dir)?;
+
+    // Connect to the database
+    let conn = Connection::open(db_path)?;
+
+    // Get list of all tables
+    let mut stmt = conn.prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+    )?;
+    
+    let tables: Vec<String> = stmt
+        .query_map([], |row| row.get(0))?
+        .collect::<SqliteResult<Vec<String>>>()?;
+
+    // Process each table
+    for table_name in tables {
+        println!("Converting table: {}", table_name);
+        
+        // Get column names and data in a single statement
+        let mut stmt = conn.prepare(&format!(
+            "SELECT * FROM {}",
+            table_name
+        ))?;
+        
+        let column_names: Vec<String> = stmt
+            .column_names()
+            .into_iter()
+            .map(String::from)
+            .collect();
+
+        // Create CSV writer
+        let output_path = output_dir.join(format!("{}.csv", table_name));
+        let mut writer = Writer::from_path(output_path)?;
+
+        // Write header
+        writer.write_record(&column_names)?;
+
+        // Write data rows
+        let mut rows = stmt.query([])?;
+        while let Some(row) = rows.next()? {
+            let mut record = Vec::new();
+            for i in 0..column_names.len() {
+                let value: String = match row.get_ref(i)? {
+                    rusqlite::types::ValueRef::Null => String::from(""),
+                    rusqlite::types::ValueRef::Integer(i) => i.to_string(),
+                    rusqlite::types::ValueRef::Real(f) => f.to_string(),
+                    rusqlite::types::ValueRef::Text(t) => String::from_utf8_lossy(t).to_string(),
+                    rusqlite::types::ValueRef::Blob(b) => format!("{:?}", b),
+                };
+                record.push(value);
+            }
+            writer.write_record(&record)?;
+        }
+        writer.flush()?;
+    }
+
+    println!("Conversion completed successfully!");
+    Ok(())
+}
+
+pub fn run_simulation(num_rounds: usize, species_name: Option<&str>) -> Result<(), Box<dyn Error>> {
     let start_time = Instant::now();
     let all_species = get_all_species()?;
     let selected_species = select_species(&all_species, species_name);
@@ -173,8 +238,18 @@ pub fn run_simulation(num_rounds: usize, species_name: Option<&str>) -> Result<(
         let mut param = SimulationParam::new(species);
         let mut species_mutations = 0;
         let exon_genome_ratio: f64 = (param.exon_end_range as f64 / species.genome_size as f64) * 100.0;
+        
         for _ in 0..num_rounds {
             species_mutations += param.run_simulation_round(&conn).unwrap_or(0);
+        }
+        
+        // Export results to CSV after simulation completes
+        if let Some(db_path) = conn.path() {
+            let output_dir = Path::new("simulation_results");
+            let db_path = Path::new(db_path);  // Convert &str to &Path
+            if let Err(e) = convert_db_to_csv(db_path, output_dir) {
+                eprintln!("Failed to export results to CSV: {}", e);
+            }
         }
         
         // Report additional information
