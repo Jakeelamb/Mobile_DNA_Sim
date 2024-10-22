@@ -1,11 +1,12 @@
 // src/widgets/app_widgets.rs
-use ratatui::widgets::{List, Paragraph, Widget};
+use ratatui::widgets::{List, Paragraph, Widget, Chart};
 
 #[derive(Clone)]
 pub enum AppWidget {
-    SpeciesList(List<'static>), // Change to List instead of Paragraph
+    SpeciesList(List<'static>), 
     LogoBlock(Paragraph<'static>),
     InfoBlock(Paragraph<'static>),
+    // Chart(Chart<'static>),
     SettingsBlock(Paragraph<'static>),
     FooterBlock(Paragraph<'static>),
 }
@@ -17,22 +18,8 @@ impl AppWidget {
             AppWidget::LogoBlock(logo) => logo,
             AppWidget::InfoBlock(info) => info,
             AppWidget::SettingsBlock(settings) => settings,
+            // AppWidget::Chart(chart) => chart,
             AppWidget::FooterBlock(footer) => footer,
         }
     }
 }
-
-// Logo functions for different tabs
-// pub fn get_ascii_logo() -> String {
-//     fs::read_to_string("img/logo2.txt")
-//         .expect("Failed to read logo.txt")
-//         .trim()
-//         .to_string()
-// }
-
-// pub fn get_ascii_sim() -> String {
-//     fs::read_to_string("img/simulation.txt")
-//         .expect("Failed to read simulation.txt")
-//         .trim()
-//         .to_string()
-// }
