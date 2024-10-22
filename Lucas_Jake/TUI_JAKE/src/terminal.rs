@@ -3,6 +3,7 @@ use crate::widgets::tabstate::TabState;
 use crate::widgets::app_widgets::AppWidget;
 use crate::widgets::footer_renderer::render_footer;
 use crate::widgets::header_renderer::render_header;
+use crate::widgets::key_bindings_renderer::render_key_bindings;
 use crate::widgets::input_handler::{next, previous, scroll_up, scroll_down};
 
 use std::{error::Error, io};
@@ -35,6 +36,7 @@ fn setup_chunks(area: Rect) -> Vec<Rect> {
             Constraint::Min(8),  // Header (logo)
             Constraint::Min(15),    // Main content area
             Constraint::Length(3),  // Footer area
+            Constraint::Length(10),  // Key Bindings area
         ])
         .split(area)
         .to_vec() // Convert Rc<[Rect]> to Vec<Rect>
@@ -59,6 +61,12 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
             let header = render_header(&tab_state);
             f.render_widget(header, chunks[1]);
 
+            // // Render the run time
+            // if let Some(start_time) = tab_state.start_time {
+            //     let run_time = render_run_time(start_time);
+            //     f.render_widget(run_time, chunks[0]); // Assuming you're rendering it in a chunk
+            // }
+
             //  Render the content area based on the active tab
             // let content_blocks = tab_state.render_home_widgets();
             let content_chunks = Layout::default()
@@ -75,10 +83,11 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                 if let Some(chunk) = content_chunks.get(i) {
                     match block {
                         AppWidget::SpeciesList(list) => f.render_stateful_widget(list.clone(), *chunk, &mut tab_state.list_state),
-                        // AppWidget::LogoBlock(logo) => f.render_widget(logo.clone(), *chunk),
                         AppWidget::InfoBlock(info) => f.render_widget(info.clone(), *chunk),
                         AppWidget::SettingsBlock(settings) => f.render_widget(settings.clone(), *chunk),
-                        // AppWidget::FooterBlock(footer) => f.render_widget(footer.clone(), *chunk),
+                        // AppWidget::MutationChart(chart) => f.render_widget(chart.clone(), *chunk),
+                        // AppWidget::ProbabilityChart(chart) => f.render_widget(chart.clone(), *chunk),
+                        // AppWidget::Chart(chart) => f.render_widget(chart.clone(), *chunk),  // Render the chart
                         _ => {}
                     }
                 }
@@ -86,8 +95,10 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
 
             let footer = render_footer();
             f.render_widget(footer, chunks[3]);
-            // let footer = tab_state.render_footer();
-            // f.render_widget(footer, chunks[3]);
+
+            // Render the Key Bindings
+            let key_bindings = render_key_bindings();
+            f.render_widget(key_bindings, chunks[4]);
         })?;
 
         if let Ok(event) = event::read() {
