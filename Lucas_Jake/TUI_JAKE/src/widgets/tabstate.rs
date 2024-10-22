@@ -2,15 +2,15 @@
 use crate::widgets::app_widgets::AppWidget;
 use crate::widgets::sim_renderer::render_sim_widgets;
 use crate::widgets::home_renderer::render_home_widgets;
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Tabs};
-use ratatui::style::{Style, Color, Modifier};
-use ratatui::text::{Span, Line, Text};
+use ratatui::widgets::{Block, Borders, Tabs};
+use ratatui::style::{Style, Color};
+use ratatui::text::{Span, Line};
 use ratatui::widgets::ListState;
 use std::collections::HashMap;
 use serde_json::Value; // Import Value from serde_json for JSON parsing
 use serde::Deserialize;
 use std::fs;
-use crate::logo::{get_ascii_logo, get_ascii_sim}; // Import the logo functions
+use std::time::Instant;
 
 /// Holds the state and information for the application
 pub struct TabState {
@@ -34,6 +34,9 @@ pub struct TabState {
     pub current_genome_size: String,
     pub current_exon_genome_ratio: String,
     pub probability_of_te_mutation: f64,
+    pub start_time: Option<Instant>, 
+    // pub mutation_data: Vec<(f64, f64)>,  // Store mutation data (round, # of mutations)
+    // pub probability_data: Vec<(f64, f64)>,  // Store mutation probability data
 }
 
 #[derive(Deserialize, Debug)]
@@ -76,7 +79,12 @@ impl TabState {
                 sim_rounds: "10000".to_string(),
                 cpu_cores: "16".to_string(),
                 output_dir: "Results".to_string(),
-                active_input: 0
+                active_input: 0,
+                start_time: None,
+                // mutation_data: vec![(0.0, 10.0), (1.0, 20.0), (2.0, 30.0), (3.0, 40.0)], // Example data
+                // probability_data: vec![(0.0, 0.1), (1.0, 0.2), (2.0, 0.3)], // Example probability data
+                // mutation_data: Vec::new(),
+                // probability_data: Vec::new(),
         } 
         }
 
@@ -123,13 +131,16 @@ impl TabState {
         }
     }
 
-/// Helper function to render widgets for the Simulation tab
-pub fn start_simulation(&mut self) {
-    // Implement the simulation start logic here
-    println!("yo!!!!!!!!!!");   
-    // println!("Simulation started for species: {}", self.current_species);
-    // Simulation logic goes here, e.g., modifying state, running the simulation, etc.
-}
+    // Set the start time to now when the simulation starts
+    pub fn start_simulation(&mut self) {
+        self.start_time = Some(Instant::now());
+    }
+
+    // Update this data as the simulation runs [MAY?bE NEED LATER]
+//      pub fn update_simulation_data(&mut self, round: f64, mutations: f64, probability: f64) {
+//         self.mutation_data.push((round, mutations));
+//         self.probability_data.push((round, probability));
+//     }
 }
 // ------ SPECIES DATA STRUCT ------
 
