@@ -1,0 +1,8 @@
+{
+    "species": ["fish", "worm", "bird", "duck", "pig", "cow", "dog", "cat", "human", "alien", "zombie",
+                "vampire", "werewolf", "ghost", "demon", "angel", "god", "goddess", "robot", "cyborg",
+                "android", "golem", "dragon", "phoenix", "unicorn", "pegasus", "mermaid", "siren", "centaur",
+                "minotaur", "harpy", "gryphon", "chimera", "hydra", "kraken", "sphinx", "basilisk", "manticore",
+                "cockatrice", "hippogriff", "wyvern", "yeti", "sasquatch", "chupacabra", "mothman", "jersey devil",
+                "wendigo", "skinwalker"]
+}

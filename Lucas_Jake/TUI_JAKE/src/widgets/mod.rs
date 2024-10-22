@@ -9,3 +9,4 @@ pub mod footer_renderer;
 pub mod header_renderer;
 pub mod input_handler;
 pub mod home_renderer;
+pub mod key_bindings_renderer;
