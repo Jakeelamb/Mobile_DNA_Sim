@@ -35,6 +35,8 @@ pub struct TabState {
     pub current_exon_genome_ratio: String,
     pub probability_of_te_mutation: f64,
     pub start_time: Option<Instant>, 
+    pub run_time: String,           // Holds the formatted run time
+    pub current_round: usize,       // Holds the current simulation round
     // pub mutation_data: Vec<(f64, f64)>,  // Store mutation data (round, # of mutations)
     // pub probability_data: Vec<(f64, f64)>,  // Store mutation probability data
 }
@@ -81,6 +83,8 @@ impl TabState {
                 output_dir: "Results".to_string(),
                 active_input: 0,
                 start_time: None,
+                run_time: "00:00:00".to_string(),
+                current_round: 0,
                 // mutation_data: vec![(0.0, 10.0), (1.0, 20.0), (2.0, 30.0), (3.0, 40.0)], // Example data
                 // probability_data: vec![(0.0, 0.1), (1.0, 0.2), (2.0, 0.3)], // Example probability data
                 // mutation_data: Vec::new(),
