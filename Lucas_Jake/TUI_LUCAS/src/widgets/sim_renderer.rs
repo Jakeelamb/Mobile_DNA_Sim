@@ -1,8 +1,9 @@
 // use crate::widgets::app_widgets::AppWidget;
 use crate::widgets::tabstate::TabState;
+use crate::widgets::tabstate::SpeciesData;
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::widgets::{Paragraph, Borders, Block, Chart, Dataset, Axis};
 use ratatui::text::{Line, Span};
+use ratatui::widgets::{Axis, Block, Borders, Chart, Dataset, Paragraph};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     Frame,
@@ -20,11 +21,7 @@ pub fn render_current_round(current_round: usize, total_rounds: usize) -> Paragr
         "Current Round: {} / {}",
         current_round, total_rounds
     )))
-    .block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title(""),
-    )
+    .block(Block::default().borders(Borders::ALL).title(""))
     .style(Style::default().fg(Color::White).bg(Color::Black))
 }
 
@@ -33,12 +30,20 @@ pub fn render_mutation_chart<'a>(tab_state: &'a TabState) -> Chart<'a> {
         Dataset::default()
             .name("Mutations")
             .style(Style::default().fg(Color::Cyan))
-            .data(&tab_state.mutation_data),  // Reference the data in TabState
+            .data(&tab_state.mutation_data), // Reference the data in TabState
     ];
 
     Chart::new(datasets)
-        .block(Block::default().borders(Borders::ALL).title("Number of Mutations"))
-        .x_axis(Axis::default().title("Simulation Rounds").bounds([0.0, 100.0]))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Number of Mutations"),
+        )
+        .x_axis(
+            Axis::default()
+                .title("Simulation Rounds")
+                .bounds([0.0, 100.0]),
+        )
         .y_axis(Axis::default().title("# of Mutations").bounds([0.0, 100.0]))
         .style(Style::default().fg(Color::White).bg(Color::Black))
 }
@@ -48,12 +53,20 @@ pub fn render_probability_chart<'a>(tab_state: &'a TabState) -> Chart<'a> {
         Dataset::default()
             .name("Probability")
             .style(Style::default().fg(Color::Yellow))
-            .data(&tab_state.probability_data),  // Reference the data in TabState
+            .data(&tab_state.probability_data), // Reference the data in TabState
     ];
 
     Chart::new(datasets)
-        .block(Block::default().borders(Borders::ALL).title("Probability of Mutation"))
-        .x_axis(Axis::default().title("Simulation Rounds").bounds([0.0, 100.0]))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Probability of Mutation"),
+        )
+        .x_axis(
+            Axis::default()
+                .title("Simulation Rounds")
+                .bounds([0.0, 100.0]),
+        )
         .y_axis(Axis::default().title("Probability").bounds([0.0, 1.0]))
 }
 
@@ -175,7 +188,7 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
     let right_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(2), // Graphs title block
+            Constraint::Percentage(2),  // Graphs title block
             Constraint::Percentage(49), // Mutation chart
             Constraint::Percentage(49), // Probability chart
         ])
@@ -184,30 +197,49 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
     // Render Start Simulation button
     let start_button = Paragraph::new(Span::styled(
         "Start Simulation",
-        Style::default().fg(Color::White).bg(Color::Blue).add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(Color::White)
+            .bg(Color::Blue)
+            .add_modifier(Modifier::BOLD),
     ))
-    .block(Block::default().borders(Borders::ALL)
-    .style(Style::default().bg(Color::Gray).fg(Color::White))
-    .border_style(Style::default().fg(Color::Gray)).title(""));
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .style(Style::default().bg(Color::Gray).fg(Color::White))
+            .border_style(Style::default().fg(Color::Gray))
+            .title(""),
+    );
     f.render_widget(start_button, left_chunks[0]);
+
+    // Get the currently selected species and corresponding data
+    let selected_species = tab_state
+        .species
+        .get(tab_state.list_state.selected().unwrap_or(0))
+        .unwrap();
+
+    let species_info = tab_state
+        .species_info
+        .get(selected_species)
+        .cloned()
+        .unwrap_or(SpeciesData::default());
 
     // Render Simulation Info block
     let species_info_text = vec![
         Line::from(vec![Span::raw(format!(
             "Species: {}\n",
-            tab_state.current_species
+            species_info.species
         ))]),
         Line::from(vec![Span::raw(format!(
             "Start Genome Size: {}\n",
-            tab_state.start_genome_size
+            species_info.genome_size
         ))]),
         Line::from(vec![Span::raw(format!(
             "Start Exon Size: {}\n",
-            tab_state.start_exon_size
+            species_info.exon_size
         ))]),
         Line::from(vec![Span::raw(format!(
             "Exon/Genome Ratio: {}\n",
-            tab_state.exon_genome_ratio
+            species_info.exon_ratio
         ))]),
         Line::from(vec![Span::raw(format!(
             "# of Simulation Rounds completed: {}\n",
@@ -239,17 +271,26 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         Block::default()
             .borders(Borders::ALL)
             .title("Simulation Info")
-            .title_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+            .title_style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
             .style(Style::default().bg(Color::Red).fg(Color::White)),
     );
     f.render_widget(simulation_info, left_chunks[1]);
 
     // Render Graphs Title Block
     let settings_block = Paragraph::new("Mutation and Probability Graphs").block(
-        Block::default().borders(Borders::ALL).title("Graphs").title_style(
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
-            .style(Style::default().bg(Color::Gray).fg(Color::White),
-        ),
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Graphs")
+            .title_style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .style(Style::default().bg(Color::Gray).fg(Color::White)),
     );
     f.render_widget(settings_block, right_chunks[0]);
 
