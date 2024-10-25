@@ -58,7 +58,7 @@ pub fn render_home_widgets(tab_state: &TabState) -> Vec<AppWidget> {
 
     let species_info_text = format!(
         "\nSpecies: {}\nGenome Size: {}\nExon Size: {}\nExon/Genome Ratio: {}",
-        species_info.name, species_info.genome_size, species_info.exon_size, species_info.exon_ratio
+        species_info.species, species_info.genome_size, species_info.exon_size, species_info.exon_ratio
     );
 
     let info_block = Paragraph::new(species_info_text)
