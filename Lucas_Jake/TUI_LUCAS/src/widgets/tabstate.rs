@@ -39,6 +39,11 @@ pub struct TabState {
     pub current_round: usize,              // Holds the current simulation round
     pub mutation_data: Vec<(f64, f64)>,    // Store mutation data (round, # of mutations)
     pub probability_data: Vec<(f64, f64)>, // Store mutation probability data
+
+    //Search Bar
+    pub search_mode: bool,
+    pub search_query: String,
+    pub filtered_species: Vec<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -112,6 +117,11 @@ impl TabState {
                 (4.0, 50.0),
             ], // Example mutation data
             probability_data: vec![(0.0, 0.1), (1.0, 0.2), (2.0, 0.3), (3.0, 0.4), (4.0, 0.5)], // Example probability data
+
+            // Search Bar
+            search_mode: false,
+            search_query: String::new(),
+            filtered_species: vec![],
         }
     }
 
@@ -124,7 +134,7 @@ impl TabState {
             .highlight_style(Style::default().fg(Color::Yellow))
     }
 
-    pub fn render_content(&self) -> Vec<AppWidget> {
+    pub fn render_content(&mut self) -> Vec<AppWidget> {
         match self.index {
             0 => render_home_widgets(self), // Render widgets for the Home tab
             _ => render_home_widgets(self),
