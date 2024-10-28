@@ -11,6 +11,7 @@ pub enum AppWidget {
     CurrentRoundBlock(Paragraph<'static>),
     SettingsBlock(Paragraph<'static>),
     FooterBlock(Paragraph<'static>),
+    SearchBar(Paragraph<'static>),
 }
 
 impl AppWidget {
@@ -24,6 +25,7 @@ impl AppWidget {
             AppWidget::SettingsBlock(settings) => settings,
             // AppWidget::Chart(chart) => chart,
             AppWidget::FooterBlock(footer) => footer,
+            AppWidget::SearchBar(search_bar) => search_bar,
         }
     }
 }
