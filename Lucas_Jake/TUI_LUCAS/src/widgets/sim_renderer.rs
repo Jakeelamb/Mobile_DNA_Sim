@@ -1,6 +1,6 @@
 // use crate::widgets::app_widgets::AppWidget;
-use crate::widgets::tabstate::TabState;
 use crate::widgets::tabstate::SpeciesData;
+use crate::widgets::tabstate::TabState;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Axis, Block, Borders, Chart, Dataset, Paragraph};
@@ -211,17 +211,36 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
     );
     f.render_widget(start_button, left_chunks[0]);
 
-    // Get the currently selected species and corresponding data
-    let selected_species = tab_state
-        .species
-        .get(tab_state.list_state.selected().unwrap_or(0))
-        .unwrap();
+    // Get the selected species for Simulation Info, using filtered list if search mode is active
+    let selected_species_list = if tab_state.search_mode && !tab_state.filtered_species.is_empty() {
+        &tab_state.filtered_species
+    } else {
+        &tab_state.species
+    };
+
+    const EMPTY_STRING: &String = &String::new(); // Static reference to an empty string slic
+
+    let selected_species = selected_species_list
+    .get(tab_state.list_state.selected().unwrap_or(0))
+    .unwrap_or(EMPTY_STRING); // Use the static empty `String` referenc
 
     let species_info = tab_state
         .species_info
         .get(selected_species)
         .cloned()
         .unwrap_or(SpeciesData::default());
+
+    // Get the currently selected species and corresponding data
+    // let selected_species = tab_state
+    //     .species
+    //     .get(tab_state.list_state.selected().unwrap_or(0))
+    //     .unwrap();
+
+    // let species_info = tab_state
+    //     .species_info
+    //     .get(selected_species)
+    //     .cloned()
+    //     .unwrap_or(SpeciesData::default());
 
     // Render Simulation Info block
     let species_info_text = vec![

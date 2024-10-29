@@ -1,75 +1,101 @@
 //home_renderer.rs
 use crate::widgets::app_widgets::AppWidget;
-use crate::widgets::tabstate::TabState;
 use crate::widgets::tabstate::SpeciesData;
+use crate::widgets::tabstate::TabState;
 use ratatui::style::{Color, Style};
-use ratatui::text::{Span, Line};
+use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 
-pub fn render_search_bar(search_query: String) -> Paragraph<'static> {
-    Paragraph::new(Span::from(format!("Search: {}", search_query)))
-        .block(Block::default().borders(Borders::ALL).title("Search"))
-        .style(Style::default().fg(Color::Yellow).bg(Color::Black))
-}
-
-
 pub fn render_home_widgets(tab_state: &mut TabState) -> Vec<AppWidget> {
-    // Render the search bar if search mode is enabled
-    let search_bar = if tab_state.search_mode {
-        Some(render_search_bar(tab_state.search_query.clone())
-        )
-    } else {
-        None
-    };
-
-    // Filter species list if search mode is active
+    // Determine the title for the species list block
     let species_list_title = if tab_state.search_mode {
         format!("Search: {}", tab_state.search_query)
     } else {
-        "Species List - Press'/' to search".to_string()
+        "Species List - Press '/' to search".to_string()
     };
 
-    // let species_items: Vec<ListItem> = if tab_state.search_mode {
-    //     // Populate filtered_species initially if empty
-    //     if tab_state.filtered_species.is_empty() {
-    //         tab_state.filtered_species = tab_state.species.clone();
+    // let species_items: Vec<ListItem> =
+    //     if tab_state.search_mode && !tab_state.search_query.is_empty() {
+    //         tab_state.filtered_species.iter()
+    //     } else {
+    //         tab_state.species.iter()
     //     }
-    //     tab_state.filtered_species.iter()
-    // } else {
-    //     tab_state.species.iter()
-    // }
-    // .map(|species_name| ListItem::new(Span::from(species_name.clone())))
-    // .collect();
-    let species_items: Vec<ListItem> = if tab_state.search_mode && !tab_state.search_query.is_empty() {
-        tab_state.filtered_species = tab_state.species
+    //     .map(|species_name| ListItem::new(Span::from(species_name.clone())))
+    //     .collect();
+    // Update filtered species based on search query
+    if tab_state.search_mode && !tab_state.search_query.is_empty() {
+        tab_state.filtered_species = tab_state
+            .species
             .iter()
-            .filter(|name| name.to_lowercase().contains(&tab_state.search_query.to_lowercase()))
+            .filter(|name| {
+                name.to_lowercase()
+                    .contains(&tab_state.search_query.to_lowercase())
+            })
             .cloned()
             .collect();
-        tab_state.filtered_species.iter()
     } else {
-        tab_state.species.iter()
+        tab_state.filtered_species = tab_state.species.clone(); // Reset to full list if no query
     }
-    .map(|species_name| ListItem::new(Span::from(species_name.clone())))
-    .collect();
 
+    // Ensure the selected index is within bounds of the filtered list
+    if tab_state.filtered_species.is_empty() {
+        tab_state.list_state.select(None); // If there are no filtered species, clear the selection
+    } else {
+        let selected_index = tab_state.list_state.selected().unwrap_or(0);
+        if selected_index >= tab_state.filtered_species.len() {
+            tab_state.list_state.select(Some(0)); // Reset to first item if out of bounds
+        }
+    }
+
+    // Create list items for display
+    let species_items: Vec<ListItem> = tab_state
+        .filtered_species
+        .iter()
+        .map(|species_name| ListItem::new(Span::from(species_name.clone())))
+        .collect();
+
+    // Create the species list widget
     let species_list = List::new(species_items)
-    .block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title(species_list_title),
-    )
-    .style(Style::default().fg(Color::Black).bg(Color::White))
-    .highlight_style(Style::default().fg(Color::Black).bg(Color::Yellow));
-    // // Create a List widget with species items
+        .block(Block::default().borders(Borders::ALL).title(Span::styled(
+            species_list_title,
+            if tab_state.search_mode {
+                Style::default().fg(Color::Yellow).bg(Color::Black)
+            } else {
+                Style::default()
+            },
+        )))
+        .style(Style::default().fg(Color::Black).bg(Color::White))
+        .highlight_style(Style::default().fg(Color::Black).bg(Color::Yellow));
+    // Create the species list widget with the search query in the title, no extra search bar item
     // let species_list = List::new(species_items)
-    //     .block(Block::default().borders(Borders::ALL).title(species_list_title))
+    //     .block(Block::default().borders(Borders::ALL).title(Span::styled(
+    //         species_list_title,
+    //         if tab_state.search_mode {
+    //             Style::default().fg(Color::Yellow).bg(Color::Black)
+    //         } else {
+    //             Style::default()
+    //         },
+    //     )))
     //     .style(Style::default().fg(Color::Black).bg(Color::White))
-    //     .highlight_style(Style::default().fg(Color::Black).bg(Color::Yellow)); // Highlighted item style
+    //     .highlight_style(Style::default().fg(Color::Black).bg(Color::Yellow));
 
-    // Create Species Info block
-    let selected_species = tab_state.species.get(tab_state.list_state.selected().unwrap_or(0)).unwrap();
-    let species_info = tab_state.species_info.get(selected_species).cloned().unwrap_or(SpeciesData::default());
+    // Get the selected species for displaying info, ensuring we handle an empty list gracefully
+    let selected_species = tab_state.filtered_species.get(tab_state.list_state.selected().unwrap_or(0));
+    let species_info = match selected_species {
+        Some(species) => tab_state.species_info.get(species).cloned().unwrap_or(SpeciesData::default()),
+        None => SpeciesData::default(), // Default info if no species is selected
+    };
+
+    // let selected_species = tab_state
+    //     .species
+    //     .get(tab_state.list_state.selected().unwrap_or(0))
+    //     .unwrap();
+    
+    // let species_info = tab_state
+    //     .species_info
+    //     .get(selected_species)
+    //     .cloned()
+    //     .unwrap_or(SpeciesData::default());
 
     fn format_size(size: f64) -> String {
         if size > 1_000_000.0 {
@@ -98,50 +124,79 @@ pub fn render_home_widgets(tab_state: &mut TabState) -> Vec<AppWidget> {
         .block(Block::default().borders(Borders::ALL).title("Species Info"))
         .style(Style::default().bg(Color::Blue).fg(Color::White));
 
-    // Simulation settings block
+    // Create the Simulation Settings block
     let sim_settings_lines = vec![
         Line::from(""),
         Line::from(Span::styled(
             format!("Starting TEs: {}", tab_state.starting_tes),
             Style::default()
-                .fg(if tab_state.active_input == 0 { Color::Yellow } else { Color::White })
-                .bg(if tab_state.active_input == 0 { Color::Blue } else { Color::Green }),
+                .fg(if tab_state.active_input == 0 {
+                    Color::Yellow
+                } else {
+                    Color::White
+                })
+                .bg(if tab_state.active_input == 0 {
+                    Color::Blue
+                } else {
+                    Color::Green
+                }),
         )),
         Line::from(Span::styled(
             format!("Simulation Rounds: {}", tab_state.sim_rounds),
             Style::default()
-                .fg(if tab_state.active_input == 1 { Color::Yellow } else { Color::White })
-                .bg(if tab_state.active_input == 1 { Color::Blue } else { Color::Green }),
+                .fg(if tab_state.active_input == 1 {
+                    Color::Yellow
+                } else {
+                    Color::White
+                })
+                .bg(if tab_state.active_input == 1 {
+                    Color::Blue
+                } else {
+                    Color::Green
+                }),
         )),
         Line::from(Span::styled(
             format!("CPU Cores: {}", tab_state.cpu_cores),
             Style::default()
-                .fg(if tab_state.active_input == 2 { Color::Yellow } else { Color::White })
-                .bg(if tab_state.active_input == 2 { Color::Blue } else { Color::Green }),
+                .fg(if tab_state.active_input == 2 {
+                    Color::Yellow
+                } else {
+                    Color::White
+                })
+                .bg(if tab_state.active_input == 2 {
+                    Color::Blue
+                } else {
+                    Color::Green
+                }),
         )),
         Line::from(Span::styled(
             format!("Output Directory Path: {}", tab_state.output_dir),
             Style::default()
-                .fg(if tab_state.active_input == 3 { Color::Yellow } else { Color::White })
-                .bg(if tab_state.active_input == 3 { Color::Blue } else { Color::Green }),
+                .fg(if tab_state.active_input == 3 {
+                    Color::Yellow
+                } else {
+                    Color::White
+                })
+                .bg(if tab_state.active_input == 3 {
+                    Color::Blue
+                } else {
+                    Color::Green
+                }),
         )),
     ];
 
     let sim_settings_block = Paragraph::new(sim_settings_lines)
-        .block(Block::default().borders(Borders::ALL).title("Simulation Settings [Use <Tab> to scroll]"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Sim. Settings [Use <Tab> to scroll]"),
+        )
         .style(Style::default().bg(Color::Green).fg(Color::White));
 
-    let mut widgets = vec![
-        // AppWidget::SearchBar(search_bar.unwrap_or_else(|| Paragraph::new(""))),
+    // Return all widgets as AppWidgets
+    vec![
         AppWidget::SpeciesList(species_list),
         AppWidget::InfoBlock(info_block),
         AppWidget::SettingsBlock(sim_settings_block),
-    ];
-
-    // Add the search bar widget if it's active
-    if let Some(bar) = search_bar {
-        widgets.insert(0, AppWidget::SearchBar(bar));
-    }
-
-    widgets
+    ]
 }
