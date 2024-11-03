@@ -11,6 +11,11 @@ use serde_json::Value; // Import Value from serde_json for JSON parsing
 use std::collections::HashMap;
 use std::fs;
 use std::time::Instant;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
+use csv::Writer;
+use std::io::Error;
 
 /// Holds the state and information for the application
 pub struct TabState {
@@ -44,6 +49,11 @@ pub struct TabState {
     pub search_mode: bool,
     pub search_query: String,
     pub filtered_species: Vec<String>,
+
+    pub simulation_start_triggered: bool,
+    pub rounds_completed: usize,
+    pub total_mutations: usize,
+    pub simulation_rounds: usize, 
 }
 
 #[derive(Deserialize, Debug)]
@@ -77,6 +87,145 @@ pub fn load_species_data() -> HashMap<String, SpeciesData> {
 }
 
 impl TabState {
+
+    // Take 4
+    pub fn export_to_csv(&self) -> Result<(), Box<dyn std::error::Error>> {
+        // Construct the full file path
+        let file_path = format!("{}/{}_results.csv", self.output_dir, self.current_species);
+        
+        // Create the CSV writer
+        let mut wtr = csv::Writer::from_path(&file_path)?;
+        
+        // Write the headers and data
+        wtr.write_record(&["Species", "Genome Size", "Exon Size", "Exon/Genome Ratio", "Number of Rounds", "Run Time"])?;
+        wtr.write_record(&[
+            &self.current_species,
+            &self.species_info.get(&self.current_species).unwrap_or(&SpeciesData::default()).genome_size.to_string(),
+            &self.species_info.get(&self.current_species).unwrap_or(&SpeciesData::default()).exon_size.to_string(),
+            &self.species_info.get(&self.current_species).unwrap_or(&SpeciesData::default()).exon_ratio.to_string(),
+            &self.current_round.to_string(),
+            &self.run_time,
+        ])?;
+        
+        wtr.flush()?; // Ensure all data is written to disk
+        Ok(())
+    }
+
+
+    // Take 3
+    // pub fn export_to_csv(&self) -> Result<(), Error> {
+    //     // Construct the file path
+    //     let directory_path = Path::new(&self.output_dir);
+    //     let file_path = directory_path.join(format!("{}.csv", self.current_species));
+
+    //     // Create the directory if it doesn't exist
+    //     if !directory_path.exists() {
+    //         fs::create_dir_all(directory_path)?;
+    //     }
+
+    //     // Create the CSV file
+    //     let mut file = File::create(file_path)?;
+
+    //     // Write CSV headers
+    //     writeln!(file, "Species,Genome Size,Exon Size,Exon/Genome Ratio,Number of Rounds,Run Time")?;
+
+    //     // Fetch species data
+    //     if let Some(species_info) = self.species_info.get(&self.current_species) {
+    //         // println!("Exporting data for species: {}", self.current_species); // Debug print
+
+    //         // // Debug prints for values
+    //         // println!("Genome Size: {}", species_info.genome_size);
+    //         // println!("Exon Size: {}", species_info.exon_size);
+    //         // println!("Exon/Genome Ratio: {}", species_info.exon_ratio);
+    //         // println!("Current Round: {}", self.current_round);
+    //         // println!("Run Time: {}", self.run_time);
+
+    //         // Write data to CSV
+    //         writeln!(
+    //             file,
+    //             "{},{},{},{},{},{}",
+    //             self.current_species,
+    //             species_info.genome_size,
+    //             species_info.exon_size,
+    //             species_info.exon_ratio,
+    //             self.current_round,
+    //             self.run_time
+    //         )?;
+    //     } else {
+    //         println!("Warning: Species info not found for '{}'", self.current_species);
+    //     }
+
+    //     Ok(())
+    // }
+
+    // Take 2
+    // pub fn export_to_csv(&self) -> Result<(), Error> {
+    //     // Construct the file path
+    //     let directory_path = Path::new(&self.output_dir);
+    //     let file_path = directory_path.join(format!("{}.csv", self.current_species));
+
+    //     // Create the directory if it doesn't exist
+    //     if !directory_path.exists() {
+    //         fs::create_dir_all(directory_path)?;
+    //     }
+
+    //     // Create the CSV file
+    //     let mut file = File::create(file_path)?;
+
+    //     // Write CSV headers
+    //     writeln!(file, "Species,Genome Size,Exon Size,Exon/Genome Ratio,Number of Rounds,Run Time")?;
+
+    //     // Write data
+    //     if let Some(species_info) = self.species_info.get(&self.current_species) {
+    //         writeln!(
+    //             file,
+    //             "{},{},{},{},{},{}",
+    //             self.current_species,
+    //             species_info.genome_size,
+    //             species_info.exon_size,
+    //             species_info.exon_ratio,
+    //             self.current_round,
+    //             self.run_time
+    //         )?;
+    //     } else {
+    //         println!("Warning: Species info not found for '{}'", self.current_species);
+    //     }
+
+    //     Ok(())
+    // }
+
+    // Take 1
+    // pub fn export_to_csv(&self) {
+    //     // Use the output directory and the species name to create a file path
+    //     let file_path = format!("{}/{}_simulation_data.csv", self.output_dir, self.current_species);
+
+    //     // Create the file
+    //     let path = Path::new(&file_path);
+    //     let mut wtr = Writer::from_path(path).expect("Failed to create CSV file");
+
+    //     // Write headers to the CSV file
+    //     wtr.write_record(&["Species", "Genome Size", "Exon Size", "Exon/Genome Ratio", "Rounds Completed", "Run Time"])
+    //         .expect("Failed to write CSV headers");
+
+    //     // Get the current species data
+    //     if let Some(species_data) = self.species_info.get(&self.current_species) {
+    //         // Write the row with the species data and current simulation stats
+    //         wtr.write_record(&[
+    //             &species_data.species,
+    //             &species_data.genome_size.to_string(),
+    //             &species_data.exon_size.to_string(),
+    //             &species_data.exon_ratio.to_string(),
+    //             &self.simulation_rounds_completed.to_string(),
+    //             &self.run_time,
+    //         ])
+    //         .expect("Failed to write CSV data row");
+    //     }
+
+    //     // Flush and close the writer
+    //     wtr.flush().expect("Failed to flush CSV writer");
+    //     println!("Data successfully exported to {}", file_path);
+    // }
+
     pub fn new() -> TabState {
         let mut state = ListState::default();
         state.select(Some(0)); // Start with the first item selected
@@ -94,7 +243,6 @@ impl TabState {
             start_genome_size: "3000".to_string(),
             start_exon_size: "1000".to_string(),
             exon_genome_ratio: "0.33".to_string(),
-            simulation_rounds_completed: 0,
             tes_mobilized: 0,
             mutations: 0,
             current_genome_size: "3000".to_string(),
@@ -106,9 +254,6 @@ impl TabState {
             cpu_cores: "16".to_string(),
             output_dir: "Results".to_string(),
             active_input: 0,
-            start_time: None,
-            run_time: "00:00:00".to_string(),
-            current_round: 0,
             mutation_data: vec![
                 (0.0, 10.0),
                 (1.0, 20.0),
@@ -121,6 +266,16 @@ impl TabState {
             search_mode: false,
             search_query: String::new(),
             filtered_species: vec![],
+
+            // New run simulation idea
+            start_time: None,
+            run_time: "00:00:00".to_string(),
+            current_round: 0,
+            simulation_rounds_completed: 0,
+            simulation_start_triggered: false,
+            rounds_completed: 0,
+            total_mutations: 0,
+            simulation_rounds: 30,
         }
     }
 
@@ -143,7 +298,33 @@ impl TabState {
     // Set the start time to now when the simulation starts
     pub fn start_simulation(&mut self) {
         self.start_time = Some(Instant::now());
+        self.current_round = 0;
     }
+    // pub fn start_simulation(&mut self) {
+    //     self.start_time = Some(Instant::now());
+    // }
+
+    pub fn update_simulation(&mut self) {
+        // Only increment if there are more rounds left
+        if self.has_more_rounds() {
+            self.current_round += 1;
+        }
+    
+        if let Some(start_time) = self.start_time {
+            let elapsed = start_time.elapsed();
+            self.run_time = format!(
+                "{:02}:{:02}:{:02}",
+                elapsed.as_secs() / 3600,
+                (elapsed.as_secs() % 3600) / 60,
+                elapsed.as_secs() % 60
+            );
+        }
+    }
+
+    pub fn has_more_rounds(&self) -> bool {
+        self.current_round < self.simulation_rounds
+    }
+
 }
 
 // ------ SPECIES DATA STRUCT ------
