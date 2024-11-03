@@ -47,6 +47,14 @@ pub fn render_home_widgets(tab_state: &mut TabState) -> Vec<AppWidget> {
         }
     }
 
+    // Update the `current_species` in `tab_state` to match the currently highlighted species
+    if let Some(selected_index) = tab_state.list_state.selected() {
+        if let Some(species) = tab_state.filtered_species.get(selected_index) {
+            // Update `current_species` to the highlighted species
+            tab_state.current_species = species.clone();
+        }
+    }
+
     // Create list items for display
     let species_items: Vec<ListItem> = tab_state
         .filtered_species
@@ -66,18 +74,6 @@ pub fn render_home_widgets(tab_state: &mut TabState) -> Vec<AppWidget> {
         )))
         .style(Style::default().fg(Color::Black).bg(Color::White))
         .highlight_style(Style::default().fg(Color::Black).bg(Color::Yellow));
-    // Create the species list widget with the search query in the title, no extra search bar item
-    // let species_list = List::new(species_items)
-    //     .block(Block::default().borders(Borders::ALL).title(Span::styled(
-    //         species_list_title,
-    //         if tab_state.search_mode {
-    //             Style::default().fg(Color::Yellow).bg(Color::Black)
-    //         } else {
-    //             Style::default()
-    //         },
-    //     )))
-    //     .style(Style::default().fg(Color::Black).bg(Color::White))
-    //     .highlight_style(Style::default().fg(Color::Black).bg(Color::Yellow));
 
     // Get the selected species for displaying info, ensuring we handle an empty list gracefully
     let selected_species = tab_state.filtered_species.get(tab_state.list_state.selected().unwrap_or(0));
@@ -85,17 +81,6 @@ pub fn render_home_widgets(tab_state: &mut TabState) -> Vec<AppWidget> {
         Some(species) => tab_state.species_info.get(species).cloned().unwrap_or(SpeciesData::default()),
         None => SpeciesData::default(), // Default info if no species is selected
     };
-
-    // let selected_species = tab_state
-    //     .species
-    //     .get(tab_state.list_state.selected().unwrap_or(0))
-    //     .unwrap();
-    
-    // let species_info = tab_state
-    //     .species_info
-    //     .get(selected_species)
-    //     .cloned()
-    //     .unwrap_or(SpeciesData::default());
 
     fn format_size(size: f64) -> String {
         if size > 1_000_000.0 {

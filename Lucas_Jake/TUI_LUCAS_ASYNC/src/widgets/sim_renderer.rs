@@ -8,6 +8,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     Frame,
 };
+use std::time::{Duration, Instant};
 
 // // Move these functions outside
 pub fn render_run_time(run_time: &str) -> Paragraph<'static> {
@@ -226,3 +227,34 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
     let probability_chart = render_probability_chart(tab_state);
     f.render_widget(probability_chart, right_chunks[2]);
 }
+
+// RUN SIMULATION
+// pub async fn run_simulation(tab_state: Arc<Mutex<TabState>>) {
+//     {
+//         let mut state = tab_state.lock().await;
+//         state.start_time = Some(Instant::now());
+//     }
+
+//     for _ in 0..tab_state.lock().await.simulation_rounds {
+//         // Simulate a round with a delay
+//         sleep(Duration::from_millis(100)).await;
+
+//         let mut state = tab_state.lock().await;
+//         state.rounds_completed += 1;
+
+//         // Update runtime in real-time
+//         if let Some(start_time) = state.start_time {
+//             let elapsed = start_time.elapsed();
+//             state.run_time = format!(
+//                 "{:02}:{:02}:{:02}",
+//                 elapsed.as_secs() / 3600,
+//                 (elapsed.as_secs() % 3600) / 60,
+//                 elapsed.as_secs() % 60
+//             );
+//         }
+//     }
+
+//     let mut state = tab_state.lock().await;
+//     state.simulation_start_triggered = false;
+//     // tab_state.lock().await.simulation_start_triggered = false;
+// }
