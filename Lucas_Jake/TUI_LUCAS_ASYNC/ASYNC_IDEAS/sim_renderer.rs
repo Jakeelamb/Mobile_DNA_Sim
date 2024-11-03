@@ -1,4 +1,5 @@
 // use crate::widgets::app_widgets::AppWidget;
+// use crate::widgets::run_simulation::SimulationParam;
 use crate::widgets::tabstate::SpeciesData;
 use crate::widgets::tabstate::TabState;
 use ratatui::style::{Color, Modifier, Style};
@@ -8,6 +9,10 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     Frame,
 };
+use std::time::{Instant};
+use tokio::time::{sleep, Duration};
+use tokio::sync::Mutex;
+use std::sync::Arc;
 
 // // Move these functions outside
 pub fn render_run_time(run_time: &str) -> Paragraph<'static> {
@@ -70,8 +75,11 @@ pub fn render_probability_chart<'a>(tab_state: &'a TabState) -> Chart<'a> {
         .y_axis(Axis::default().title("Probability").bounds([0.0, 1.0]))
 }
 
-pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
-    // Create layout for the main simulation section (info and charts)
+
+pub fn render_sim_widgets(tab_state: &mut TabState, f: &mut Frame, area: Rect) {
+// pub fn render_sim_widgets(tab_state: &Arc<Mutex<TabState>>, f: &mut Frame, area: Rect) {    // Create layout for the main simulation section (info and charts)
+    // let state = tab_state.blocking_lock();
+
     let layout_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -123,11 +131,11 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         &tab_state.species
     };
 
-    const EMPTY_STRING: &String = &String::new(); // Static reference to an empty string slic
+    const EMPTY_STRING: &String = &String::new();
 
     let selected_species = selected_species_list
-    .get(tab_state.list_state.selected().unwrap_or(0))
-    .unwrap_or(EMPTY_STRING); // Use the static empty `String` referenc
+        .get(tab_state.list_state.selected().unwrap_or(0))
+        .unwrap_or(EMPTY_STRING);
 
     let species_info = tab_state
         .species_info
@@ -135,19 +143,37 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         .cloned()
         .unwrap_or(SpeciesData::default());
 
-    // Get the currently selected species and corresponding data
-    // let selected_species = tab_state
-    //     .species
-    //     .get(tab_state.list_state.selected().unwrap_or(0))
-    //     .unwrap();
+    // Check if the simulation should start and spawn an async task if so
+    // let mut tab_state_lock = tab_state.blocking_lock();
+    // if !tab_state_lock.simulation_start_triggered {
+    //     tab_state_lock.simulation_start_triggered = true;
+    // } else {
+    //     // If `simulation_start_triggered` is already true, we don't start a new simulation.
+    //     return;
+    // } // `tab_state_lock` goes out of scope here, releasing the lock
 
-    // let species_info = tab_state
-    //     .species_info
-    //     .get(selected_species)
-    //     .cloned()
-    //     .unwrap_or(SpeciesData::default());
+    //Now, spawn the async task after the lock is released
+    // tokio::spawn(run_simulation(Arc::clone(&tab_state)));
 
-    // Render Simulation Info block
+    // Display updated simulation info
+    let info_text = vec![
+        Line::from(format!("Rounds Completed: {}", tab_state.rounds_completed)),
+        Line::from(format!("Total Mutations: {}", tab_state.total_mutations)),
+        Line::from(format!("Run Time: {}", tab_state.run_time)),
+        // More simulation data as needed
+    ];
+
+    let info_paragraph = Paragraph::new(info_text)
+        .block(
+            Block::default()
+                .title("Simulation Info")
+                .borders(Borders::ALL),
+        )
+        .style(Style::default().bg(Color::Red).fg(Color::White));
+
+    f.render_widget(info_paragraph, left_chunks[1]);
+
+    // Render additional simulation information
     let species_info_text = vec![
         Line::from(vec![Span::raw(format!(
             "Species: {}\n",
@@ -219,10 +245,41 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
     f.render_widget(settings_block, right_chunks[0]);
 
     // Render Mutation Chart
-    let mutation_chart = render_mutation_chart(tab_state);
+    let mutation_chart = render_mutation_chart(&tab_state);
     f.render_widget(mutation_chart, right_chunks[1]);
 
     // Render Probability Chart
-    let probability_chart = render_probability_chart(tab_state);
+    let probability_chart = render_probability_chart(&tab_state);
     f.render_widget(probability_chart, right_chunks[2]);
+}
+
+
+pub async fn run_simulation(tab_state: Arc<Mutex<TabState>>) {
+    {
+        let mut state = tab_state.lock().await;
+        state.start_time = Some(Instant::now());
+    }
+
+    for _ in 0..tab_state.lock().await.simulation_rounds {
+        // Simulate a round with a delay
+        sleep(Duration::from_millis(100)).await;
+
+        let mut state = tab_state.lock().await;
+        state.rounds_completed += 1;
+
+        // Update runtime in real-time
+        if let Some(start_time) = state.start_time {
+            let elapsed = start_time.elapsed();
+            state.run_time = format!(
+                "{:02}:{:02}:{:02}",
+                elapsed.as_secs() / 3600,
+                (elapsed.as_secs() % 3600) / 60,
+                elapsed.as_secs() % 60
+            );
+        }
+    }
+
+    let mut state = tab_state.lock().await;
+    state.simulation_start_triggered = false;
+    // tab_state.lock().await.simulation_start_triggered = false;
 }

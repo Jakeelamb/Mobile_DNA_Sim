@@ -13,6 +13,7 @@ use std::fs;
 use std::time::Instant;
 
 /// Holds the state and information for the application
+#[derive(Clone)]  
 pub struct TabState {
     pub index: usize,
     pub species: Vec<String>,  // List of species for the home tab
@@ -44,6 +45,13 @@ pub struct TabState {
     pub search_mode: bool,
     pub search_query: String,
     pub filtered_species: Vec<String>,
+    
+     //new run simulation idea
+    pub simulation_start_triggered: bool,
+    pub rounds_completed: usize,
+    pub total_mutations: usize,
+    pub simulation_rounds: usize, // Number of rounds to run when starting
+     // Any others?
 }
 
 #[derive(Deserialize, Debug)]
@@ -114,13 +122,20 @@ impl TabState {
                 (1.0, 20.0),
                 (2.0, 30.0),
                 (3.0, 40.0),
+                (4.0, 50.0),
             ], // Example mutation data
-            probability_data: vec![(0.0, 0.1), (1.0, 0.2), (2.0, 0.3), (3.0, 0.4)], // Example probability data
+            probability_data: vec![(0.0, 0.1), (1.0, 0.2), (2.0, 0.3), (3.0, 0.4), (4.0, 0.5)], // Example probability data
 
             // Search Bar
             search_mode: false,
             search_query: String::new(),
             filtered_species: vec![],
+
+            // New run simulation idea
+            simulation_start_triggered: false,
+            rounds_completed: 0,
+            total_mutations: 0,
+            simulation_rounds: 1000,
         }
     }
 
