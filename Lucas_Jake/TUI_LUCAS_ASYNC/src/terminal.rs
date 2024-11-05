@@ -11,8 +11,7 @@ use crate::widgets::tabstate::TabState;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Span;
 use ratatui::widgets::{Block, Borders, ListState, Paragraph};
-use std::thread;
-use std::time::{Duration, Instant};
+
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -68,12 +67,12 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                     .constraints([Constraint::Percentage(100)]) // 100% for tabs, no right-side info
                     .split(chunks[0])
             } else {
-                // Simulation tab: 70% for tabs, 30% for Run Time and Current Round
+                // Simulation tab: 50% for tabs, 50% for Run Time(progress bar) and Current Round
                 Layout::default()
                     .direction(Direction::Horizontal)
                     .constraints([
-                        Constraint::Percentage(70), // Tabs section
-                        Constraint::Percentage(30), // Info (Run Time + Current Round) section
+                        Constraint::Percentage(50), // Tabs section
+                        Constraint::Percentage(50), // Info (Run Time + Current Round) section
                     ])
                     .split(chunks[0])
             };
@@ -86,32 +85,40 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
             let header = render_header(&tab_state);
             f.render_widget(header, chunks[1]);
 
-            // Only render Run Time and Current Round on the Simulation tab (index 1)
             if tab_state.index == 1 {
                 let info_chunks = Layout::default()
                     .direction(Direction::Horizontal)
                     .constraints([
-                        Constraint::Percentage(50), // Run Time block
+                        Constraint::Percentage(50), // Progress Bar block
                         Constraint::Percentage(50), // Current Round block
                     ])
                     .split(tab_and_info_chunks[1]);
-
-                // Render the Run Time and Current Round next to the tabs
-                let run_time_block = render_run_time(&tab_state.run_time);
-                f.render_widget(run_time_block, info_chunks[0]);
-
+            
+                // Render the Progress Bar
+                let progress_paragraph = Paragraph::new(Span::styled(
+                    &tab_state.progress_bar,
+                    Style::default().fg(Color::Green),
+                ))
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title("Simulation Progress"),
+                );
+                f.render_widget(progress_paragraph, info_chunks[0]);
+            
+                // Render the Current Round in the second half of info_chunks
                 let current_round_block =
                     render_current_round(tab_state.current_round, tab_state.simulation_rounds);
                 f.render_widget(current_round_block, info_chunks[1]);
-
+            
                 // Update the simulation
                 if tab_state.simulation_start_triggered {
                     tab_state.update_simulation();
-
+            
                     // Check if the simulation has completed all rounds
                     if !tab_state.has_more_rounds() {
                         tab_state.simulation_start_triggered = false; // Stop the simulation
-
+            
                         // Export to CSV once simulation completes
                         if let Err(e) = tab_state.export_to_csv() {
                             eprintln!("Failed to export to CSV: {:?}", e);
@@ -119,6 +126,39 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                     }
                 }
             }
+            // // Only render Run Time and Current Round on the Simulation tab (index 1)
+            // if tab_state.index == 1 {
+            //     let info_chunks = Layout::default()
+            //         .direction(Direction::Horizontal)
+            //         .constraints([
+            //             Constraint::Percentage(50), // Run Time block
+            //             Constraint::Percentage(50), // Current Round block
+            //         ])
+            //         .split(tab_and_info_chunks[1]);
+
+            //     // Render the Run Time and Current Round next to the tabs
+            //     let run_time_block = render_run_time(&tab_state.run_time);
+            //     f.render_widget(run_time_block, info_chunks[0]);
+
+            //     let current_round_block =
+            //         render_current_round(tab_state.current_round, tab_state.simulation_rounds);
+            //     f.render_widget(current_round_block, info_chunks[1]);
+
+            //     // Update the simulation
+            //     if tab_state.simulation_start_triggered {
+            //         tab_state.update_simulation();
+
+            //         // Check if the simulation has completed all rounds
+            //         if !tab_state.has_more_rounds() {
+            //             tab_state.simulation_start_triggered = false; // Stop the simulation
+
+            //             // Export to CSV once simulation completes
+            //             if let Err(e) = tab_state.export_to_csv() {
+            //                 eprintln!("Failed to export to CSV: {:?}", e);
+            //             }
+            //         }
+            //     }
+            // }
 
             // Render content for the Home tab
             if tab_state.index == 0 {
@@ -170,12 +210,6 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
             f.render_widget(key_bindings, chunks[4]);
         })?;
 
-        // Update the simulation state
-        // if tab_state.has_more_rounds() {
-        //     tab_state.update_simulation();
-        // } else {
-        //     break;
-        // }
         // Check if the simulation should be running
         if tab_state.simulation_start_triggered {
             if tab_state.has_more_rounds() {
@@ -193,37 +227,13 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
             match event {
                 Event::Key(key) => match key.code {
                     KeyCode::Char('q') => break, // Quit the application
-                    // KeyCode::Char('s') => {
-                    //     if !tab_state.simulation_start_triggered {
-                    //         tab_state.start_simulation(); // Start the simulation
-                    //         tab_state.simulation_start_triggered = true;
-                    //     }
-                    // }
-                    // KeyCode::Char('s') => {
-                    //     if !tab_state.simulation_start_triggered {
-                    //         tab_state.start_simulation(); // Set start time and reset rounds
-                    //         tab_state.simulation_start_triggered = true; // Start the simulation
-                    //                                                      // Run the simulation in a loop
-                    //         while tab_state.has_more_rounds() {
-                    //             tab_state.update_simulation(); // Update rounds and runtime
-                    //             std::thread::sleep(std::time::Duration::from_millis(100));
-                    //             // Delay for each round
-                    //         }
-
-                    //         // Once the simulation completes, reset the flag and export to CSV
-                    //         tab_state.simulation_start_triggered = false;
-                    //         tab_state.export_to_csv(); // Export results to CSV
-                    //     }
-                    // }
-
-                    // Navigate between tabs
                     // Navigate between tabs
                     KeyCode::Right => {
                         next(&mut tab_state);
                         if tab_state.index == 1 {
                             // Only exit search mode if desired, but don't clear the search results
                             // tab_state.search_mode = false;
-                    
+
                             // Set `current_species` to the selected species based on the filtered list
                             if let Some(selected_species) = tab_state
                                 .filtered_species
@@ -232,13 +242,13 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                                 tab_state.current_species = selected_species.clone();
                             }
                         }
-                    },
+                    }
                     KeyCode::Left => {
                         previous(&mut tab_state);
                         if tab_state.index == 1 {
-                            // Only exit search mode if desired, but don't clear the search results
+                            // Only exit search mode, leave results.
                             // tab_state.search_mode = false;
-                    
+
                             // Set `current_species` to the selected species based on the filtered list
                             if let Some(selected_species) = tab_state
                                 .filtered_species
@@ -247,10 +257,10 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                                 tab_state.current_species = selected_species.clone();
                             }
                         }
-                    },
+                    }
 
                     KeyCode::Down => {
-                        // Only allow scrolling if on the Home page (index == 0)
+                        // only allow scrolling if on the Home page (index == 0)
                         if tab_state.index == 0 {
                             if tab_state.search_mode && !tab_state.filtered_species.is_empty() {
                                 scroll_down_with_list(
@@ -263,7 +273,7 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                         }
                     }
                     KeyCode::Up => {
-                        // Only allow scrolling if on the Home page (index == 0)
+                        // only allow scrolling if on the Home page (index == 0)
                         if tab_state.index == 0 {
                             if tab_state.search_mode && !tab_state.filtered_species.is_empty() {
                                 scroll_up_with_list(
@@ -288,7 +298,10 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
 
                     // Handle regular character input
                     KeyCode::Char(c) => {
-                        if tab_state.index == 1 && c == 's' && (!tab_state.search_mode || tab_state.search_mode) {
+                        if tab_state.index == 1
+                            && c == 's'
+                            && (!tab_state.search_mode || tab_state.search_mode)
+                        {
                             // Start the simulation on the Simulation page if 's' is pressed
                             if !tab_state.simulation_start_triggered {
                                 tab_state.start_simulation(); // Set start time and reset rounds
@@ -308,16 +321,18 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                                     })
                                     .cloned()
                                     .collect();
-                                
+
                                 // Keep the current selection within the filtered list
                                 tab_state.list_state.select(Some(0));
                             } else {
                                 // Handle regular input for simulation settings if not in search mode
                                 match tab_state.active_input {
-                                    0 => tab_state.starting_tes.push(c), // Edit Starting TEs
-                                    1 => tab_state.sim_rounds.push(c),   // Edit Simulation Rounds
-                                    2 => tab_state.cpu_cores.push(c),    // Edit CPU cores
-                                    3 => tab_state.output_dir.push(c),   // Edit Output Directory
+                                    0 => tab_state.starting_tes.push(c),      // Edit Starting TEs
+                                    1 => tab_state.sim_rounds.push(c), // Edit Simulation Rounds
+                                    2 => tab_state.cpu_cores.push(c),  // Edit CPU cores
+                                    3 => tab_state.sim_mobility_prob.push(c), // Edit Probability of TE Mutation
+                                    4 => tab_state.output_dir.push(c), // Edit Output Directory
+
                                     _ => {}
                                 }
                             }
@@ -350,6 +365,9 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                                     tab_state.cpu_cores.pop();
                                 }
                                 3 => {
+                                    tab_state.sim_mobility_prob.pop();
+                                }
+                                4 => {
                                     tab_state.output_dir.pop();
                                 }
                                 _ => {}
@@ -368,7 +386,11 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                     // Cycle through simulation settings inputs
                     KeyCode::Tab => {
                         if tab_state.index == 0 {
-                            tab_state.active_input = (tab_state.active_input + 1) % 4;
+                            // Cycle through indices 1 to 4
+                            tab_state.active_input += 1;
+                            if tab_state.active_input > 4 {
+                                tab_state.active_input = 0; // Wrap around to the first editable field
+                            }
                         }
                     }
 
