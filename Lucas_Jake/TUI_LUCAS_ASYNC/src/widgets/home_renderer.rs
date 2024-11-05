@@ -155,7 +155,7 @@ pub fn render_home_widgets(tab_state: &mut TabState) -> Vec<AppWidget> {
                 }),
         )),
         Line::from(Span::styled(
-            format!("Output Directory Path: {}", tab_state.output_dir),
+            format!("TE's probability to mobilize: {}", tab_state.sim_mobility_prob),
             Style::default()
                 .fg(if tab_state.active_input == 3 {
                     Color::Yellow
@@ -163,6 +163,20 @@ pub fn render_home_widgets(tab_state: &mut TabState) -> Vec<AppWidget> {
                     Color::White
                 })
                 .bg(if tab_state.active_input == 3 {
+                    Color::Blue
+                } else {
+                    Color::Green
+                }),
+        )),
+        Line::from(Span::styled(
+            format!("Output Directory Path: {}", tab_state.output_dir),
+            Style::default()
+                .fg(if tab_state.active_input == 4 {
+                    Color::Yellow
+                } else {
+                    Color::White
+                })
+                .bg(if tab_state.active_input == 4 {
                     Color::Blue
                 } else {
                     Color::Green
