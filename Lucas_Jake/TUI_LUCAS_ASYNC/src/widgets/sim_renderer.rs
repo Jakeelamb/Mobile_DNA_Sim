@@ -8,7 +8,6 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     Frame,
 };
-use std::time::{Duration, Instant};
 
 // // Move these functions outside
 pub fn render_run_time(run_time: &str) -> Paragraph<'static> {
@@ -100,13 +99,27 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         ])
         .split(layout_chunks[1]);
 
-    // Render Start Simulation button
-    let start_button = Paragraph::new(Span::styled(
-        "Start Simulation",
+    // Determine the button style based on whether the simulation has started
+    let start_button_style = if tab_state.simulation_start_triggered {
+        Style::default()
+            .fg(Color::Black) // Change the text color to indicate it's pressed
+            .bg(Color::LightGreen) // Change the background color
+            .add_modifier(Modifier::BOLD | Modifier::ITALIC) // Add a modifier for emphasis
+    } else {
         Style::default()
             .fg(Color::White)
             .bg(Color::Blue)
-            .add_modifier(Modifier::BOLD),
+            .add_modifier(Modifier::BOLD)
+    };
+
+    // Render Start Simulation button
+    let start_button = Paragraph::new(Span::styled(
+        if tab_state.simulation_start_triggered {
+            "Simulation Running" // Change the text to indicate it's running
+        } else {
+            "Start Simulation"
+        },
+        start_button_style,
     ))
     .block(
         Block::default()
@@ -127,26 +140,14 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
     const EMPTY_STRING: &String = &String::new(); // Static reference to an empty string slic
 
     let selected_species = selected_species_list
-    .get(tab_state.list_state.selected().unwrap_or(0))
-    .unwrap_or(EMPTY_STRING); // Use the static empty `String` referenc
+        .get(tab_state.list_state.selected().unwrap_or(0))
+        .unwrap_or(EMPTY_STRING); // Use the static empty `String` referenc
 
     let species_info = tab_state
         .species_info
         .get(selected_species)
         .cloned()
         .unwrap_or(SpeciesData::default());
-
-    // Get the currently selected species and corresponding data
-    // let selected_species = tab_state
-    //     .species
-    //     .get(tab_state.list_state.selected().unwrap_or(0))
-    //     .unwrap();
-
-    // let species_info = tab_state
-    //     .species_info
-    //     .get(selected_species)
-    //     .cloned()
-    //     .unwrap_or(SpeciesData::default());
 
     // Render Simulation Info block
     let species_info_text = vec![
@@ -188,9 +189,33 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         ))]),
         Line::from(vec![Span::raw(format!(
             "Current Probability of TE causing Mutation: {}\n",
-            tab_state.probability_of_te_mutation
+            tab_state.sim_mobility_prob
         ))]),
     ];
+
+    // Calculate the progress based on current round and total rounds
+    let progress = (tab_state.current_round as f64 / tab_state.simulation_rounds as f64).min(1.0);
+    let bar_length = (progress * 20.0).round() as usize; // 20-character bar length
+
+    // Generate the progress bar as a string
+    let progress_bar = format!(
+        "[{}{}] {:.0}%",
+        "=".repeat(bar_length),      // Filled part
+        " ".repeat(20 - bar_length), // Empty part
+        progress * 100.0
+    );
+
+    // Render Progress Bar
+    let progress_paragraph = Paragraph::new(Span::styled(
+        progress_bar,
+        Style::default().fg(Color::Green).bg(Color::Black),
+    ))
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Simulation Progress"),
+    );
+    f.render_widget(progress_paragraph, left_chunks[1]);
 
     let simulation_info = Paragraph::new(species_info_text).block(
         Block::default()
