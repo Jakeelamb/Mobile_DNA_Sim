@@ -149,6 +149,14 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         .cloned()
         .unwrap_or(SpeciesData::default());
 
+    fn format_percentage(ratio: f64) -> String {
+        format!("{:.2}%", ratio * 100.0)
+    }
+    
+    let curr_ratio_formatted = format_percentage(
+        tab_state.current_exon_genome_ratio.parse::<f64>().unwrap_or(0.0)
+    );
+
     // Render Simulation Info block
     let species_info_text = vec![
         Line::from(vec![Span::raw(format!(
@@ -169,7 +177,7 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         ))]),
         Line::from(vec![Span::raw(format!(
             "# of Simulation Rounds completed: {}\n",
-            tab_state.simulation_rounds_completed
+            tab_state.current_round
         ))]),
         Line::from(vec![Span::raw(format!(
             "# of TEs mobilized: {}\n",
@@ -185,14 +193,15 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         ))]),
         Line::from(vec![Span::raw(format!(
             "Current Exon/Genome Ratio: {}\n",
-            tab_state.current_exon_genome_ratio
+            curr_ratio_formatted
         ))]),
         Line::from(vec![Span::raw(format!(
-            "Current Probability of TE causing Mutation: {}\n",
+            "Probability of TE causing Mutation: {}\n",
             tab_state.sim_mobility_prob
         ))]),
     ];
 
+    // Progress BAR
     // Calculate the progress based on current round and total rounds
     let progress = (tab_state.current_round as f64 / tab_state.simulation_rounds as f64).min(1.0);
     let bar_length = (progress * 20.0).round() as usize; // 20-character bar length
