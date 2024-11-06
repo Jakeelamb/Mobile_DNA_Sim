@@ -12,7 +12,6 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Span;
 use ratatui::widgets::{Block, Borders, ListState, Paragraph};
 
-
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -93,7 +92,7 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                         Constraint::Percentage(50), // Current Round block
                     ])
                     .split(tab_and_info_chunks[1]);
-            
+
                 // Render the Progress Bar
                 let progress_paragraph = Paragraph::new(Span::styled(
                     &tab_state.progress_bar,
@@ -105,60 +104,44 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                         .title("Simulation Progress"),
                 );
                 f.render_widget(progress_paragraph, info_chunks[0]);
-            
+
                 // Render the Current Round in the second half of info_chunks
                 let current_round_block =
                     render_current_round(tab_state.current_round, tab_state.simulation_rounds);
                 f.render_widget(current_round_block, info_chunks[1]);
-            
-                // Update the simulation
-                if tab_state.simulation_start_triggered {
-                    tab_state.update_simulation();
-            
-                    // Check if the simulation has completed all rounds
-                    if !tab_state.has_more_rounds() {
-                        tab_state.simulation_start_triggered = false; // Stop the simulation
-            
-                        // Export to CSV once simulation completes
-                        if let Err(e) = tab_state.export_to_csv() {
-                            eprintln!("Failed to export to CSV: {:?}", e);
-                        }
-                    }
-                }
+
+                // // Update the simulation
+                // // take 2
+                // if tab_state.simulation_start_triggered {
+                //     if tab_state.has_more_rounds() {
+                //         // Run one round of the simulation and update the UI
+                //         tab_state.run_simulation_round();
+                //         tab_state.update_simulation();  // This updates the progress bar, round count, etc.
+                //     } else {
+                //         // Once all rounds are completed, stop the simulation
+                //         tab_state.simulation_start_triggered = false;
+
+                //         // Export to CSV after the simulation finishes
+                //         if let Err(e) = tab_state.export_to_csv() {
+                //             eprintln!("Failed to export to CSV: {:?}", e);
+                //         }
+                //     }
+                // }
+                //take 1
+                // if tab_state.simulation_start_triggered {
+                //     tab_state.update_simulation();
+
+                //     // Check if the simulation has completed all rounds
+                //     if !tab_state.has_more_rounds() {
+                //         tab_state.simulation_start_triggered = false; // Stop the simulation
+
+                //         // Export to CSV once simulation completes
+                //         if let Err(e) = tab_state.export_to_csv() {
+                //             eprintln!("Failed to export to CSV: {:?}", e);
+                //         }
+                //     }
+                // }
             }
-            // // Only render Run Time and Current Round on the Simulation tab (index 1)
-            // if tab_state.index == 1 {
-            //     let info_chunks = Layout::default()
-            //         .direction(Direction::Horizontal)
-            //         .constraints([
-            //             Constraint::Percentage(50), // Run Time block
-            //             Constraint::Percentage(50), // Current Round block
-            //         ])
-            //         .split(tab_and_info_chunks[1]);
-
-            //     // Render the Run Time and Current Round next to the tabs
-            //     let run_time_block = render_run_time(&tab_state.run_time);
-            //     f.render_widget(run_time_block, info_chunks[0]);
-
-            //     let current_round_block =
-            //         render_current_round(tab_state.current_round, tab_state.simulation_rounds);
-            //     f.render_widget(current_round_block, info_chunks[1]);
-
-            //     // Update the simulation
-            //     if tab_state.simulation_start_triggered {
-            //         tab_state.update_simulation();
-
-            //         // Check if the simulation has completed all rounds
-            //         if !tab_state.has_more_rounds() {
-            //             tab_state.simulation_start_triggered = false; // Stop the simulation
-
-            //             // Export to CSV once simulation completes
-            //             if let Err(e) = tab_state.export_to_csv() {
-            //                 eprintln!("Failed to export to CSV: {:?}", e);
-            //             }
-            //         }
-            //     }
-            // }
 
             // Render content for the Home tab
             if tab_state.index == 0 {
@@ -211,13 +194,31 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
         })?;
 
         // Check if the simulation should be running
+        // Update the simulation
+        // take 2
         if tab_state.simulation_start_triggered {
             if tab_state.has_more_rounds() {
-                tab_state.update_simulation();
+                // Run one round of the simulation and update the UI
+                tab_state.run_simulation_round();
+                tab_state.update_simulation(); // This updates the progress bar, round count, etc.
             } else {
-                tab_state.simulation_start_triggered = false; // Stop the simulation when rounds complete
+                // Once all rounds are completed, stop the simulation
+                tab_state.simulation_start_triggered = false;
+
+                // Export to CSV after the simulation finishes
+                if let Err(e) = tab_state.export_to_csv() {
+                    eprintln!("Failed to export to CSV: {:?}", e);
+                }
             }
         }
+        // if tab_state.simulation_start_triggered {
+        //     if tab_state.has_more_rounds() {
+        //         tab_state.run_simulation_round();
+        //         tab_state.update_simulation();
+        //     } else {
+        //         tab_state.simulation_start_triggered = false; // Stop the simulation when rounds complete
+        //     }
+        // }
 
         // Add a delay to slow down the simulation updates
         // thread::sleep(Duration::from_millis(100));
