@@ -310,9 +310,7 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
 
     f.render_widget(chart, right_chunks[1]);
 
-    // Prepare data for TEs in Exons vs. Non-Coding
-    // Extract TEs in Exons and Non-Coding
-    // Extract TEs in Exons and Non-Coding as u64
+    // BAR CHART
     let simulation_running = tab_state.simulation_start_triggered;
     // Before the simulation starts, bar values are zero
     let te_in_exons = if simulation_running {
@@ -344,8 +342,8 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
                 ))
                 .borders(Borders::ALL),
         )
-        .bar_width(17)
-        .bar_gap(4)
+        .bar_width(14)
+        .bar_gap(2)
         .data(&data)
         .style(Style::default().fg(Color::White))
         .value_style(Style::default().fg(Color::Black).bg(Color::Green))
