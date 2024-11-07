@@ -72,7 +72,7 @@ pub fn render_home_widgets(tab_state: &mut TabState) -> Vec<AppWidget> {
                 Style::default()
             },
         )))
-        .style(Style::default().fg(Color::Black).bg(Color::White))
+        .style(Style::default().fg(Color::Gray).bg(Color::Black))
         .highlight_style(Style::default().fg(Color::Black).bg(Color::Yellow));
 
     // Get the selected species for displaying info, ensuring we handle an empty list gracefully
