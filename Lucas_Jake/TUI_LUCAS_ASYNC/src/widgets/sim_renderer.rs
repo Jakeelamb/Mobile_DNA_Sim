@@ -164,6 +164,8 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
             .unwrap_or(0.0),
     );
 
+    let exon_ratio_formatted = format_percentage(species_info.exon_ratio);
+
     // Render Simulation Info block
     let species_info_text = vec![
         Line::from(vec![Span::raw(format!(
@@ -180,7 +182,7 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         ))]),
         Line::from(vec![Span::raw(format!(
             "Exon/Genome Ratio: {}\n",
-            species_info.exon_ratio
+            exon_ratio_formatted
         ))]),
         Line::from(vec![Span::raw(format!(
             "# of Simulation Rounds completed: {}\n",
