@@ -321,12 +321,6 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         0
     };
 
-    let te_in_noncoding = if simulation_running {
-        tab_state.te_in_noncoding as u64
-    } else {
-        0
-    };
-
     let te_in_exons = tab_state.te_in_exons as u64;
     let te_in_noncoding = tab_state.te_in_noncoding as u64;
 
@@ -343,15 +337,15 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         .block(
             Block::default()
                 .title(Span::styled(
-                    " [ TE Distribution ]",
+                    "[ TE Distribution ]",
                     Style::default()
                         .fg(Color::Yellow)
                         .add_modifier(Modifier::BOLD),
                 ))
                 .borders(Borders::ALL),
         )
-        .bar_width(10)
-        .bar_gap(10)
+        .bar_width(17)
+        .bar_gap(4)
         .data(&data)
         .style(Style::default().fg(Color::White))
         .value_style(Style::default().fg(Color::Black).bg(Color::Green))
