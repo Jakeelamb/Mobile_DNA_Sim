@@ -394,14 +394,12 @@ fn render_ui(state: &mut TabState, f: &mut Frame, chunks: Vec<ratatui::layout::R
     
                 // Handle regular character input
                 KeyCode::Char(c) => {
-                    if state.index == 1 && c == 's' && (!state.search_mode || state.search_mode)
-                    {
+                    if state.index == 1 && c == 's' {
                         // Start the simulation on the Simulation page if 's' is pressed
                         if !state.simulation_start_triggered {
                             state.reset_simulation_results();
                             state.start_simulation(); // Set start time and reset rounds
                             state.simulation_start_triggered = true;
-                            // state.needs_redraw = true; // Force UI redraw
                         }
                     } else if state.index == 0 {
                         // Handle search mode and settings input only on the Home page
@@ -417,9 +415,11 @@ fn render_ui(state: &mut TabState, f: &mut Frame, chunks: Vec<ratatui::layout::R
                                 })
                                 .cloned()
                                 .collect();
-
+                
                             // Keep the current selection within the filtered list
                             state.list_state.select(Some(0));
+                        } else if c == 's' {
+                            // Ignore 's' keypress when not in search mode on the Home page
                         } else {
                             // Handle regular input for simulation settings if not in search mode
                             match state.active_input {
@@ -428,12 +428,52 @@ fn render_ui(state: &mut TabState, f: &mut Frame, chunks: Vec<ratatui::layout::R
                                 2 => state.cpu_cores.push(c),         // Edit CPU cores
                                 3 => state.sim_mobility_prob.push(c), // Edit Probability of TE Mutation
                                 4 => state.output_dir.push(c),        // Edit Output Directory
-
-                                _ => {}
+                
+                                _ => println!("Invalid active input field: {}", state.active_input),
                             }
                         }
                     }
                 }
+                // KeyCode::Char(c) => {
+                //     if state.index == 1 && c == 's' && !state.search_mode {
+                //         // Start the simulation on the Simulation page if 's' is pressed
+                //         if !state.simulation_start_triggered {
+                //             state.reset_simulation_results();
+                //             state.start_simulation(); // Set start time and reset rounds
+                //             state.simulation_start_triggered = true;
+                //             // state.needs_redraw = true; // Force UI redraw
+                //         }
+                //     } else if state.index == 0 {
+                //         // Handle search mode and settings input only on the Home page
+                //         if state.search_mode {
+                //             // Add the character to the search query in search mode
+                //             state.search_query.push(c);
+                //             state.filtered_species = state
+                //                 .species
+                //                 .iter()
+                //                 .filter(|name| {
+                //                     name.to_lowercase()
+                //                         .contains(&state.search_query.to_lowercase())
+                //                 })
+                //                 .cloned()
+                //                 .collect();
+
+                //             // Keep the current selection within the filtered list
+                //             state.list_state.select(Some(0));
+                //         } else {
+                //             // Handle regular input for simulation settings if not in search mode
+                //             match state.active_input {
+                //                 0 => state.starting_tes.push(c),      // Edit Starting TEs
+                //                 1 => state.sim_rounds.push(c),        // Edit Simulation Rounds
+                //                 2 => state.cpu_cores.push(c),         // Edit CPU cores
+                //                 3 => state.sim_mobility_prob.push(c), // Edit Probability of TE Mutation
+                //                 4 => state.output_dir.push(c),        // Edit Output Directory
+
+                //                 _ => {}
+                //             }
+                //         }
+                //     }
+                // }
     
                 // Handle backspace
                 KeyCode::Backspace => {
