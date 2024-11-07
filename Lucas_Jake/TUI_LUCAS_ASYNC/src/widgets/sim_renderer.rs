@@ -2,12 +2,15 @@
 use crate::widgets::tabstate::SpeciesData;
 use crate::widgets::tabstate::TabState;
 use ratatui::style::{Color, Modifier, Style};
+use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Axis, Block, Borders, Chart, Dataset, Paragraph};
+use ratatui::widgets::{BarChart, GraphType};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     Frame,
 };
+use std::{thread, time::Duration};
 
 // // Move these functions outside
 pub fn render_run_time(run_time: &str) -> Paragraph<'static> {
@@ -115,6 +118,7 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
     // Render Start Simulation button
     let start_button = Paragraph::new(Span::styled(
         if tab_state.simulation_start_triggered {
+            // thread::sleep(Duration::from_millis(30));
             "Simulation Running" // Change the text to indicate it's running
         } else {
             "Start Simulation"
@@ -152,9 +156,12 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
     fn format_percentage(ratio: f64) -> String {
         format!("{:.2}%", ratio * 100.0)
     }
-    
+
     let curr_ratio_formatted = format_percentage(
-        tab_state.current_exon_genome_ratio.parse::<f64>().unwrap_or(0.0)
+        tab_state
+            .current_exon_genome_ratio
+            .parse::<f64>()
+            .unwrap_or(0.0),
     );
 
     // Render Simulation Info block
@@ -185,7 +192,8 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         ))]),
         Line::from(vec![Span::raw(format!(
             "# of Mutations: {}\n",
-            tab_state.mutations
+            // tab_state.mutations
+            tab_state.te_in_exons
         ))]),
         Line::from(vec![Span::raw(format!(
             "Current Genome Size: {}\n",
@@ -253,42 +261,138 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
     );
     f.render_widget(settings_block, right_chunks[0]);
 
+    // CHARTS:
     // Render Mutation Chart
-    let mutation_chart = render_mutation_chart(tab_state);
-    f.render_widget(mutation_chart, right_chunks[1]);
+    // let mutation_chart = render_mutation_chart(tab_state);
+    // f.render_widget(mutation_chart, right_chunks[1]);
 
-    // Render Probability Chart
-    let probability_chart = render_probability_chart(tab_state);
-    f.render_widget(probability_chart, right_chunks[2]);
+    // // Render Probability Chart
+    // let probability_chart = render_probability_chart(tab_state);
+    // f.render_widget(probability_chart, right_chunks[2]);
+
+    // Prepare data for the chart (Simulation Rounds vs. TEs in Exons)
+    let mutations_data: Vec<(f64, f64)> = tab_state
+        .round_data
+        .iter()
+        .map(|data| (data.round as f64, data.te_in_exons as f64)) // Map rounds to TEs in Exons
+        .collect();
+
+    let chart = Chart::new(vec![Dataset::default()
+        .name("Mutations (TEs in Exons)")
+        .marker(symbols::Marker::Braille)
+        .style(Style::default().fg(Color::Magenta))
+        .graph_type(GraphType::Line) // Smooth line graph
+        .data(&mutations_data)]) // Use the prepared data
+    .block(
+        Block::default()
+            .title(Span::styled(
+                "Mutations Over Simulation Rounds",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ))
+            .borders(Borders::ALL),
+    )
+    .x_axis(
+        Axis::default()
+            .title("Simulation Rounds")
+            .style(Style::default().fg(Color::White))
+            .bounds(get_x_bounds(&mutations_data))
+            .labels(get_x_labels(&mutations_data)),
+    )
+    .y_axis(
+        Axis::default()
+            .title("# of Mutations (TEs in Exons)")
+            .style(Style::default().fg(Color::White))
+            .bounds(get_y_bounds(&mutations_data))
+            .labels(get_y_labels(&mutations_data)),
+    );
+
+    f.render_widget(chart, right_chunks[1]);
+
+    // Prepare data for TEs in Exons vs. Non-Coding
+    // Extract TEs in Exons and Non-Coding
+    // Extract TEs in Exons and Non-Coding as u64
+    let simulation_running = tab_state.simulation_start_triggered;
+    // Before the simulation starts, bar values are zero
+    let te_in_exons = if simulation_running {
+        tab_state.te_in_exons as u64
+    } else {
+        0
+    };
+
+    let te_in_noncoding = if simulation_running {
+        tab_state.te_in_noncoding as u64
+    } else {
+        0
+    };
+
+    let te_in_exons = tab_state.te_in_exons as u64;
+    let te_in_noncoding = tab_state.te_in_noncoding as u64;
+
+    // BAR CHART
+    let data = vec![
+        ("TEs in Exons", te_in_exons),
+        ("TEs in Non-Coding", te_in_noncoding),
+    ];
+
+    //
+    let bar_styles = vec![Color::Magenta, Color::Blue];
+
+    let bar_chart = BarChart::default()
+        .block(
+            Block::default()
+                .title(Span::styled(
+                    " [ TE Distribution ]",
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ))
+                .borders(Borders::ALL),
+        )
+        .bar_width(10)
+        .bar_gap(10)
+        .data(&data)
+        .style(Style::default().fg(Color::White))
+        .value_style(Style::default().fg(Color::Black).bg(Color::Green))
+        .label_style(Style::default().fg(Color::Cyan))
+        // .bar_style(bar_style);
+        .bar_style(Style::default().fg(bar_styles[0]).bg(bar_styles[1]));
+
+    f.render_widget(bar_chart, right_chunks[2]);
 }
 
-// RUN SIMULATION
-// pub async fn run_simulation(tab_state: Arc<Mutex<TabState>>) {
-//     {
-//         let mut state = tab_state.lock().await;
-//         state.start_time = Some(Instant::now());
-//     }
+/// Get the bounds for the x-axis based on the data
+fn get_x_bounds(data: &Vec<(f64, f64)>) -> [f64; 2] {
+    let min = data.first().map(|(x, _)| *x).unwrap_or(0.0);
+    let max = data.last().map(|(x, _)| *x).unwrap_or(1.0);
+    [min, max]
+}
 
-//     for _ in 0..tab_state.lock().await.simulation_rounds {
-//         // Simulate a round with a delay
-//         sleep(Duration::from_millis(100)).await;
+fn get_y_bounds(data: &Vec<(f64, f64)>) -> [f64; 2] {
+    let min = data.iter().map(|&(_, y)| y).fold(f64::INFINITY, f64::min);
+    let max = data
+        .iter()
+        .map(|&(_, y)| y)
+        .fold(f64::NEG_INFINITY, f64::max);
+    [min, max]
+}
 
-//         let mut state = tab_state.lock().await;
-//         state.rounds_completed += 1;
+fn get_x_labels(data: &Vec<(f64, f64)>) -> Vec<Span<'static>> {
+    vec![
+        Span::raw(format!("{}", data.first().map(|(x, _)| x).unwrap_or(&0.0))),
+        Span::raw(format!("{}", data.last().map(|(x, _)| x).unwrap_or(&1.0))),
+    ]
+}
 
-//         // Update runtime in real-time
-//         if let Some(start_time) = state.start_time {
-//             let elapsed = start_time.elapsed();
-//             state.run_time = format!(
-//                 "{:02}:{:02}:{:02}",
-//                 elapsed.as_secs() / 3600,
-//                 (elapsed.as_secs() % 3600) / 60,
-//                 elapsed.as_secs() % 60
-//             );
-//         }
-//     }
-
-//     let mut state = tab_state.lock().await;
-//     state.simulation_start_triggered = false;
-//     // tab_state.lock().await.simulation_start_triggered = false;
-// }
+fn get_y_labels(data: &Vec<(f64, f64)>) -> Vec<Span<'static>> {
+    let min = data.iter().map(|&(_, y)| y).fold(f64::INFINITY, f64::min);
+    let max = data
+        .iter()
+        .map(|&(_, y)| y)
+        .fold(f64::NEG_INFINITY, f64::max);
+    vec![
+        Span::raw(format!("{:.1}", min)),
+        Span::raw(format!("{:.1}", max)),
+    ]
+}
