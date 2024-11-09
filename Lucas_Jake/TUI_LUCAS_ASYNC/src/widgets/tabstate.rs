@@ -211,6 +211,10 @@ impl TabState {
     }
 
     pub fn export_to_csv(&self) -> Result<(), Box<dyn std::error::Error>> {
+        // Create the output directory if it does not exist
+        if !Path::new(&self.output_dir).exists() {
+            fs::create_dir(&self.output_dir)?;
+        }
         let file_path = format!("{}/{}_results.csv", self.output_dir, self.current_species);
         let mut wtr = csv::Writer::from_path(&file_path)?;
 
