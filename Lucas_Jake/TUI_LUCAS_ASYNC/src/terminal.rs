@@ -11,8 +11,8 @@ use crate::widgets::tabstate::TabState;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Span;
 use ratatui::widgets::{Block, Borders, ListState, Paragraph};
-use ratatui::Frame;
 use ratatui::widgets::{Gauge, Tabs};
+use ratatui::Frame;
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -90,9 +90,8 @@ pub fn run_app() -> Result<(), Box<dyn Error>> {
                 }
             }
         }
-        thread::sleep(Duration::from_millis(2)); // NOTE! If this line commented out, no need to move mouse. 
+        thread::sleep(Duration::from_millis(2)); // NOTE! If this line commented out, no need to move mouse.
     });
-
 
     // Main application loop
     loop {
@@ -305,180 +304,157 @@ fn render_ui(state: &mut TabState, f: &mut Frame, chunks: Vec<ratatui::layout::R
 //     state.needs_redraw = false; // Reset the flag
 // }
 
-    // Render the UI only if needed
-    // {
-    //     let mut state = tab_state.lock().unwrap();
-    //     if state.needs_redraw {
-    //         drop(state); // Release lock
-    //         terminal.draw(|f| {
-    //             let chunks = setup_chunks(f.area());
-    //             let mut state = tab_state.lock().unwrap(); // Re-lock for rendering
-    //             render_ui(&mut state, f, chunks);
-    //         })?;
-    //         state = tab_state.lock().unwrap(); // Re-lock to reset the flag
-    //         state.needs_redraw = false;
-    //     }
-    // }
+// Render the UI only if needed
+// {
+//     let mut state = tab_state.lock().unwrap();
+//     if state.needs_redraw {
+//         drop(state); // Release lock
+//         terminal.draw(|f| {
+//             let chunks = setup_chunks(f.area());
+//             let mut state = tab_state.lock().unwrap(); // Re-lock for rendering
+//             render_ui(&mut state, f, chunks);
+//         })?;
+//         state = tab_state.lock().unwrap(); // Re-lock to reset the flag
+//         state.needs_redraw = false;
+//     }
+// }
 
-    fn handle_event(state: &mut TabState, event: Event) -> bool {
-        match event {
-            Event::Key(key) => match key.code {
-                // Quit the application
-                KeyCode::Char('q') => return true,
-    
-                // Navigate between tabs
-                KeyCode::Right => {
-                    next(state);
-                        let selected_species = state
-                            .filtered_species
-                            .get(state.list_state.selected().unwrap_or(0))
-                            .cloned();
+fn handle_event(state: &mut TabState, event: Event) -> bool {
+    match event {
+        Event::Key(key) => match key.code {
+            // Quit the application
+            KeyCode::Char('q') => return true,
 
-                        if let Some(selected_species) = selected_species {
-                            if selected_species != state.current_species {
-                                // Reset simulation results only if a new species is selected
-                                state.current_species = selected_species;
-                            }
-                        }
-                    }
-                    // next(state);
-                    // handle_tab_change(state);
+            // Navigate between tabs
+            KeyCode::Right => {
+                next(state);
+                let selected_species = state
+                    .filtered_species
+                    .get(state.list_state.selected().unwrap_or(0))
+                    .cloned();
 
-                KeyCode::Left => {
-                    next(state);
-                        let selected_species = state
-                            .filtered_species
-                            .get(state.list_state.selected().unwrap_or(0))
-                            .cloned();
-
-                        if let Some(selected_species) = selected_species {
-                            if selected_species != state.current_species {
-                                // Reset simulation results only if a new species is selected
-                                state.current_species = selected_species;
-                            }
-                        }
-                    }
-                    // previous(state);
-                    // handle_tab_change(state);
-    
-                // Handle scrolling
-                KeyCode::Down => {
-                    if state.index == 0 {
-                        if state.search_mode && !state.filtered_species.is_empty() {
-                            let filtered_species = state.filtered_species.clone();
-                            scroll_down_with_list(&mut state.list_state, &filtered_species);
-                        } else {
-                            scroll_down(state);
-                        }
+                if let Some(selected_species) = selected_species {
+                    if selected_species != state.current_species {
+                        // Reset simulation results only if a new species is selected
+                        state.current_species = selected_species;
                     }
                 }
-                KeyCode::Up => {
-                    if state.index == 0 {
-                        if state.search_mode && !state.filtered_species.is_empty() {
-                            let filtered_species = state.filtered_species.clone();
-                            scroll_up_with_list(&mut state.list_state, &filtered_species);
-                        } else {
-                            scroll_up(state);
-                        }
-                    }
-                }
-    
-                // Handle entering search mode
-                KeyCode::Char('/') => {
-                    if state.index == 0 {
-                        state.search_mode = true;
-                        state.search_query.clear();
-                        state.list_state.select(Some(0));
-                    }
-                }
-    
-                // Handle regular character input
-                KeyCode::Char(c) => {
-                    if state.index == 1 && c == 's' {
-                        // Start the simulation on the Simulation page if 's' is pressed
-                        if !state.simulation_start_triggered {
-                            state.reset_simulation_results();
-                            state.start_simulation(); // Set start time and reset rounds
-                            state.simulation_start_triggered = true;
-                        }
-                    } else if state.index == 0 {
-                        // Handle search mode and settings input only on the Home page
-                        if state.search_mode {
-                            // Add the character to the search query in search mode
-                            state.search_query.push(c);
-                            state.filtered_species = state
-                                .species
-                                .iter()
-                                .filter(|name| {
-                                    name.to_lowercase()
-                                        .contains(&state.search_query.to_lowercase())
-                                })
-                                .cloned()
-                                .collect();
-                
-                            // Keep the current selection within the filtered list
-                            state.list_state.select(Some(0));
-                        } else if c == 's' {
-                            // Ignore 's' keypress when not in search mode on the Home page
-                        } else {
-                            // Handle regular input for simulation settings if not in search mode
-                            match state.active_input {
-                                0 => state.starting_tes.push(c),      // Edit Starting TEs
-                                1 => state.sim_rounds.push(c),        // Edit Simulation Rounds
-                                2 => state.cpu_cores.push(c),         // Edit CPU cores
-                                3 => state.sim_mobility_prob.push(c), // Edit Probability of TE Mutation
-                                4 => state.output_dir.push(c),        // Edit Output Directory
-                
-                                _ => println!("Invalid active input field: {}", state.active_input),
-                            }
-                        }
-                    }
-                }
-                // KeyCode::Char(c) => {
-                //     if state.index == 1 && c == 's' && !state.search_mode {
-                //         // Start the simulation on the Simulation page if 's' is pressed
-                //         if !state.simulation_start_triggered {
-                //             state.reset_simulation_results();
-                //             state.start_simulation(); // Set start time and reset rounds
-                //             state.simulation_start_triggered = true;
-                //             // state.needs_redraw = true; // Force UI redraw
-                //         }
-                //     } else if state.index == 0 {
-                //         // Handle search mode and settings input only on the Home page
-                //         if state.search_mode {
-                //             // Add the character to the search query in search mode
-                //             state.search_query.push(c);
-                //             state.filtered_species = state
-                //                 .species
-                //                 .iter()
-                //                 .filter(|name| {
-                //                     name.to_lowercase()
-                //                         .contains(&state.search_query.to_lowercase())
-                //                 })
-                //                 .cloned()
-                //                 .collect();
+            }
+            // next(state);
+            // handle_tab_change(state);
+            KeyCode::Left => {
+                next(state);
+                let selected_species = state
+                    .filtered_species
+                    .get(state.list_state.selected().unwrap_or(0))
+                    .cloned();
 
-                //             // Keep the current selection within the filtered list
-                //             state.list_state.select(Some(0));
-                //         } else {
-                //             // Handle regular input for simulation settings if not in search mode
-                //             match state.active_input {
-                //                 0 => state.starting_tes.push(c),      // Edit Starting TEs
-                //                 1 => state.sim_rounds.push(c),        // Edit Simulation Rounds
-                //                 2 => state.cpu_cores.push(c),         // Edit CPU cores
-                //                 3 => state.sim_mobility_prob.push(c), // Edit Probability of TE Mutation
-                //                 4 => state.output_dir.push(c),        // Edit Output Directory
+                if let Some(selected_species) = selected_species {
+                    if selected_species != state.current_species {
+                        // Reset simulation results only if a new species is selected
+                        state.current_species = selected_species;
+                    }
+                }
+            }
+            // previous(state);
+            // handle_tab_change(state);
 
-                //                 _ => {}
-                //             }
-                //         }
-                //     }
-                // }
-    
-                // Handle backspace
-                KeyCode::Backspace => {
+            // Handle scrolling
+            KeyCode::Down => {
+                if state.index == 0 {
+                    if state.search_mode && !state.filtered_species.is_empty() {
+                        let filtered_species = state.filtered_species.clone();
+                        scroll_down_with_list(&mut state.list_state, &filtered_species);
+                    } else {
+                        scroll_down(state);
+                    }
+                }
+            }
+            KeyCode::Up => {
+                if state.index == 0 {
+                    if state.search_mode && !state.filtered_species.is_empty() {
+                        let filtered_species = state.filtered_species.clone();
+                        scroll_up_with_list(&mut state.list_state, &filtered_species);
+                    } else {
+                        scroll_up(state);
+                    }
+                }
+            }
+
+            // Handle entering search mode
+            KeyCode::Char('/') => {
+                if state.index == 0 {
+                    state.search_mode = true;
+                    state.search_query.clear();
+                    state.list_state.select(Some(0));
+                }
+            }
+
+            // Handle regular character input
+            // KeyCode::Char(c) => {
+            //     match state.index {
+            //         // Simulation Tab Logic
+            //         1 => {
+            //             if c == 's' && !state.search_mode {
+            //                 if !state.simulation_start_triggered {
+            //                     // Start simulation logic
+            //                     state.reset_simulation_results();
+            //                     state.start_simulation();
+            //                     state.simulation_start_triggered = true;
+            //                     println!("Simulation started.");
+            //                 }
+            //             }
+            //         }
+
+            //         // Home Tab Logic
+            //         0 => {
+            //             if state.search_mode {
+            //                 // If in search mode, update the search query
+            //                 state.search_query.push(c);
+            //                 state.filtered_species = state
+            //                     .species
+            //                     .iter()
+            //                     .filter(|name| {
+            //                         name.to_lowercase()
+            //                             .contains(&state.search_query.to_lowercase())
+            //                     })
+            //                     .cloned()
+            //                     .collect();
+            //                 state.list_state.select(Some(0)); // Reset selection
+            //             } else if let Some(active_field) = (0..=4).contains(&state.active_input).then_some(state.active_input) {
+            //                 // Handle input for active fields (only valid fields 0-4)
+            //                 match active_field {
+            //                     0 => state.starting_tes.push(c),      // Edit Starting TEs
+            //                     1 => state.sim_rounds.push(c),        // Edit Simulation Rounds
+            //                     2 => state.cpu_cores.push(c),         // Edit CPU cores
+            //                     3 => state.sim_mobility_prob.push(c), // Edit Probability of TE Mutation
+            //                     4 => state.output_dir.push(c),        // Edit Output Directory
+            //                     _ => unreachable!(), // This should never be reached due to bounds checking
+            //                 }
+            //             } else {
+            //                 println!("No active input field or invalid state for editing: {}", state.active_input);
+            //             }
+            //         }
+
+            //         // Unknown State Index
+            //         _ => {
+            //             println!("Unhandled state index: {}", state.index);
+            //         }
+            //     }
+            // }
+            KeyCode::Char(c) => {
+                if state.index == 1 && c == 's' {
+                    // Start the simulation on the Simulation page if 's' is pressed
+                    if !state.simulation_start_triggered {
+                        state.reset_simulation_results();
+                        state.start_simulation(); // Set start time and reset rounds
+                        state.simulation_start_triggered = true;
+                    }
+                } else if state.index == 0 {
+                    // Handle search mode and settings input only on the Home page
                     if state.search_mode {
-                        state.search_query.pop();
+                        // Add the character to the search query in search mode
+                        state.search_query.push(c);
                         state.filtered_species = state
                             .species
                             .iter()
@@ -488,51 +464,125 @@ fn render_ui(state: &mut TabState, f: &mut Frame, chunks: Vec<ratatui::layout::R
                             })
                             .cloned()
                             .collect();
-                    } else if state.index == 0 {
+
+                        // Keep the current selection within the filtered list
+                        state.list_state.select(Some(0));
+                    } else if c == 's' {
+                        // Ignore 's' keypress when not in search mode on the Home page
+                    } else {
+                        // Handle regular input for simulation settings if not in search mode
                         match state.active_input {
-                            0 => {
-                                state.starting_tes.pop();
-                            }
-                            1 => {
-                                state.sim_rounds.pop();
-                            }
-                            2 => {
-                                state.cpu_cores.pop();
-                            }
-                            3 => {
-                                state.sim_mobility_prob.pop();
-                            }
-                            4 => {
-                                state.output_dir.pop();
-                            }
-                            _ => {}
+                            0 => state.starting_tes.push(c),      // Edit Starting TEs
+                            1 => state.sim_rounds.push(c),        // Edit Simulation Rounds
+                            2 => state.cpu_cores.push(c),         // Edit CPU cores
+                            3 => state.sim_mobility_prob.push(c), // Edit Probability of TE Mutation
+                            4 => state.output_dir.push(c),        // Edit Output Directory
+
+                            _ => println!("Invalid active input field: {}", state.active_input),
                         }
                     }
                 }
-    
-                // Exit search mode
-                KeyCode::Esc => {
-                    state.search_mode = false;
-                    state.search_query.clear();
-                    state.filtered_species.clear();
-                    state.list_state.select(Some(0));
-                }
-    
-                // Cycle through simulation settings inputs
-                KeyCode::Tab => {
-                    if state.index == 0 {
-                        state.active_input = (state.active_input + 1) % 5;
+            }
+
+            //OG CODE
+            // KeyCode::Char(c) => {
+            //     if state.index == 1 && c == 's' && !state.search_mode {
+            //         // Start the simulation on the Simulation page if 's' is pressed
+            //         if !state.simulation_start_triggered {
+            //             state.reset_simulation_results();
+            //             state.start_simulation(); // Set start time and reset rounds
+            //             state.simulation_start_triggered = true;
+            //             // state.needs_redraw = true; // Force UI redraw
+            //         }
+            //     } else if state.index == 0 {
+            //         // Handle search mode and settings input only on the Home page
+            //         if state.search_mode {
+            //             // Add the character to the search query in search mode
+            //             state.search_query.push(c);
+            //             state.filtered_species = state
+            //                 .species
+            //                 .iter()
+            //                 .filter(|name| {
+            //                     name.to_lowercase()
+            //                         .contains(&state.search_query.to_lowercase())
+            //                 })
+            //                 .cloned()
+            //                 .collect();
+
+            //             // Keep the current selection within the filtered list
+            //             state.list_state.select(Some(0));
+            //         } else {
+            //             // Handle regular input for simulation settings if not in search mode
+            //             match state.active_input {
+            //                 0 => state.starting_tes.push(c),      // Edit Starting TEs
+            //                 1 => state.sim_rounds.push(c),        // Edit Simulation Rounds
+            //                 2 => state.cpu_cores.push(c),         // Edit CPU cores
+            //                 3 => state.sim_mobility_prob.push(c), // Edit Probability of TE Mutation
+            //                 4 => state.output_dir.push(c),        // Edit Output Directory
+
+            //                 _ => {}
+            //             }
+            //         }
+            //     }
+            // }
+
+            // Handle backspace
+            KeyCode::Backspace => {
+                if state.search_mode {
+                    state.search_query.pop();
+                    state.filtered_species = state
+                        .species
+                        .iter()
+                        .filter(|name| {
+                            name.to_lowercase()
+                                .contains(&state.search_query.to_lowercase())
+                        })
+                        .cloned()
+                        .collect();
+                } else if state.index == 0 {
+                    match state.active_input {
+                        0 => {
+                            state.starting_tes.pop();
+                        }
+                        1 => {
+                            state.sim_rounds.pop();
+                        }
+                        2 => {
+                            state.cpu_cores.pop();
+                        }
+                        3 => {
+                            state.sim_mobility_prob.pop();
+                        }
+                        4 => {
+                            state.output_dir.pop();
+                        }
+                        _ => {}
                     }
                 }
-    
-                _ => {}
-            },
+            }
+
+            // Exit search mode
+            KeyCode::Esc => {
+                state.search_mode = false;
+                state.search_query.clear();
+                state.filtered_species.clear();
+                state.list_state.select(Some(0));
+            }
+
+            // Cycle through simulation settings inputs
+            KeyCode::Tab => {
+                if state.index == 0 {
+                    state.active_input = (state.active_input + 1) % 5;
+                }
+            }
             _ => {}
-        }
-    
-        // Return false to indicate the application should keep running
-        false
+        },
+        _ => {}
     }
 
-    // fn handle_tab_change(state: &mut TabState) {
-    // }
+    // Return false to indicate the application should keep running
+    false
+}
+
+// fn handle_tab_change(state: &mut TabState) {
+// }
