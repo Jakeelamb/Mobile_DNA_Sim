@@ -259,6 +259,7 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
             )
+            .title_alignment(ratatui::layout::Alignment::Center)
             .style(Style::default().bg(Color::Gray).fg(Color::White)),
     );
     f.render_widget(settings_block, right_chunks[0]);
@@ -342,6 +343,7 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
                         .fg(Color::Yellow)
                         .add_modifier(Modifier::BOLD),
                 ))
+                .title_alignment(ratatui::layout::Alignment::Center)
                 .borders(Borders::ALL),
         )
         .bar_width(14)
