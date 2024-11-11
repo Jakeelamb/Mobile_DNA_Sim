@@ -58,7 +58,7 @@ pub fn render_key_bindings() -> Paragraph<'static> {
                 .title("Key Bindings")
                 .title_alignment(ratatui::layout::Alignment::Center),
         )
-        .style(Style::default().bg(Color::DarkGray)) // Set background color
+        .style(Style::default().bg(Color::Black).fg(Color::White)) // Set background color
         .alignment(ratatui::layout::Alignment::Left) // Align text to the left
 }
 // pub fn render_key_bindings() -> Paragraph<'static> {
