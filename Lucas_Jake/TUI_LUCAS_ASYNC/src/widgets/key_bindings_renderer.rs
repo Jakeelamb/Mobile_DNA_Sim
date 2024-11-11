@@ -11,7 +11,7 @@ pub fn render_key_bindings() -> Paragraph<'static> {
         Span::styled(
             "[Home Page]",
             Style::default()
-                .fg(Color::Yellow)
+                .fg(Color::Cyan)
                 .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
         ),
         Span::raw("\n[q] Exit                  [Right Arrow] Next Page      [Left Arrow] Previous Theme\n\n"),
@@ -22,7 +22,7 @@ pub fn render_key_bindings() -> Paragraph<'static> {
         Span::styled(
             "[Species List]",
             Style::default()
-                .fg(Color::Cyan)
+                .fg(Color::Yellow)
                 .add_modifier(Modifier::BOLD),
         ),
         Span::raw("\n[Up Arrow] Scroll Up      [Down Arrow] Scroll Down     [/] Search      [Esc] Exit Search\n\n"),
@@ -33,7 +33,7 @@ pub fn render_key_bindings() -> Paragraph<'static> {
         Span::styled(
             "[Simulation Settings]",
             Style::default()
-                .fg(Color::Magenta)
+                .fg(Color::Green)
                 .add_modifier(Modifier::BOLD),
         ),
         Span::raw("\n[Tab] Cycle Settings      [Backspace] Delete Editable Settings\n\n"),
@@ -44,7 +44,7 @@ pub fn render_key_bindings() -> Paragraph<'static> {
         Span::styled(
             "[Simulation Page]",
             Style::default()
-                .fg(Color::Green)
+                .fg(Color::Magenta)
                 .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
         ),
         Span::raw("\n[s] Start Simulation      [Left Arrow] Back to Home Page\n"),

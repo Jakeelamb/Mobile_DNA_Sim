@@ -291,7 +291,7 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
             .title(Span::styled(
                 "Mutations Over Simulation Rounds",
                 Style::default()
-                    .fg(Color::Yellow)
+                    .fg(Color::White)
                     .add_modifier(Modifier::BOLD),
             ))
             .borders(Borders::ALL),
@@ -338,9 +338,9 @@ pub fn render_sim_widgets(tab_state: &TabState, f: &mut Frame, area: Rect) {
         .block(
             Block::default()
                 .title(Span::styled(
-                    "[ TE Distribution ]",
+                    "TE Distribution",
                     Style::default()
-                        .fg(Color::Yellow)
+                        .fg(Color::White)
                         .add_modifier(Modifier::BOLD),
                 ))
                 .title_alignment(ratatui::layout::Alignment::Center)
