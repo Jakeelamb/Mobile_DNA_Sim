@@ -6,9 +6,8 @@ mod widgets; // Module for the widgets (tabs, etc.)
 // mod widgets {
 //     pub mod tabs; // Make the tabs module public
 // }
+mod simulation; // Module for simulation made by jake
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    terminal::run_app() // Call the terminal application
+    terminal::run_app() 
 }
-
-// -- End program --
