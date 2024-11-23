@@ -1,16 +1,13 @@
 use serde::Deserialize;
-use csv::Reader;
 use std::error::Error;
 use std::io::{self, Write};
-use rand::distributions::{Distribution, Uniform};
 use rand::Rng;
 use std::path::Path;
 use rayon::prelude::*;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use rusqlite::{params, Connection, Result as SqliteResult};
 use std::time::Instant;
 use std::fs::create_dir_all;
-use csv::Writer;
+use csv::Writer;  // Add this import
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Record {
@@ -36,11 +33,13 @@ pub struct SimulationParam {
     pub te_in_noncoding: usize,
     pub simulation_round: usize,
     pub te_mobilize_prob: f64,
-    pub bp_deletion_prob: f64,       // Probability of single base deletion
-    pub window_deletion_prob: f64,   // Probability of window deletion
-    pub window_size: usize,          // Size of deletion windows
-    pub bp_deleted_exon: usize,      // Track deletions in exons
-    pub bp_deleted_noncoding: usize, // Track deletions in noncoding regions
+    pub exon_bp_deletion_prob: f64,
+    pub noncoding_bp_deletion_prob: f64,
+    pub exon_window_deletion_prob: f64,
+    pub noncoding_window_deletion_prob: f64,
+    pub window_size: usize,
+    pub bp_deleted_exon: usize,
+    pub bp_deleted_noncoding: usize,
 }
 
 impl SimulationParam {
@@ -56,128 +55,63 @@ impl SimulationParam {
             te_in_noncoding: 0,
             simulation_round: 0,
             te_mobilize_prob: 0.5,
-            bp_deletion_prob: 0.001,      // 0.1% chance per base
-            window_deletion_prob: 0.01,   // 1% chance for window deletions
-            window_size: 1000,            // 1kb windows
+            exon_bp_deletion_prob: 0.00001,
+            noncoding_bp_deletion_prob: 0.001,
+            exon_window_deletion_prob: 0.00001,
+            noncoding_window_deletion_prob: 0.01,
+            window_size: 1000,
             bp_deleted_exon: 0,
             bp_deleted_noncoding: 0,
         }
     }
 
-    fn process_deletions(&mut self) -> (usize, usize) {
+    pub fn process_deletions(&mut self) -> (usize, usize) {
         let mut rng = rand::thread_rng();
-        let mut exon_deletions = 0;
-        let mut noncoding_deletions = 0;
+        
+        // Calculate single base deletions for exons and noncoding separately
+        let expected_exon_deletions = (self.exon_length as f64 * self.exon_bp_deletion_prob) as usize;
+        let expected_noncoding_deletions = (self.noncoding_length as f64 * self.noncoding_bp_deletion_prob) as usize;
 
-        // Process single base deletions
-        let total_bases = self.genome_size;
-        let exon_prob = self.exon_length as f64 / total_bases as f64;
-
-        for _ in 0..total_bases {
-            if rng.gen_bool(self.bp_deletion_prob) {
-                if rng.gen_bool(exon_prob) {
-                    exon_deletions += 1;
-                } else {
-                    noncoding_deletions += 1;
-                }
-            }
+        // Calculate window deletions for each region
+        let exon_windows = self.exon_length / self.window_size;
+        let noncoding_windows = self.noncoding_length / self.window_size;
+        
+        let expected_exon_windows = (exon_windows as f64 * self.exon_window_deletion_prob) as usize;
+        let expected_noncoding_windows = (noncoding_windows as f64 * self.noncoding_window_deletion_prob) as usize;
+        
+        let mut additional_exon_deletions = 0;
+        let mut additional_noncoding_deletions = 0;
+        
+        // Process window deletions for exons
+        for _ in 0..expected_exon_windows {
+            let deletion_size = rng.gen_range(1..=self.window_size);
+            additional_exon_deletions += deletion_size;
         }
-
-        // Process window deletions
-        let num_windows = total_bases / self.window_size;
-        for _ in 0..num_windows {
-            if rng.gen_bool(self.window_deletion_prob) {
-                let deletion_size = rng.gen_range(1..=self.window_size);
-                if rng.gen_bool(exon_prob) {
-                    exon_deletions += deletion_size;
-                } else {
-                    noncoding_deletions += deletion_size;
-                }
-            }
+        
+        // Process window deletions for noncoding regions
+        for _ in 0..expected_noncoding_windows {
+            let deletion_size = rng.gen_range(1..=self.window_size);
+            additional_noncoding_deletions += deletion_size;
         }
 
         // Ensure we don't delete more than what exists
-        exon_deletions = exon_deletions.min(self.exon_length);
-        noncoding_deletions = noncoding_deletions.min(self.noncoding_length);
+        let total_exon_deletions = (expected_exon_deletions + additional_exon_deletions)
+            .min(self.exon_length);
+        let total_noncoding_deletions = (expected_noncoding_deletions + additional_noncoding_deletions)
+            .min(self.noncoding_length);
 
-        (exon_deletions, noncoding_deletions)
+        (total_exon_deletions, total_noncoding_deletions)
     }
 
-    pub fn run_simulation_round(&mut self, conn: &Connection) -> SqliteResult<usize> {
-        self.simulation_round += 1;
-        let mobilized = (self.active_te as f64 * self.te_mobilize_prob) as usize;
-        self.te_mobilized += mobilized;
-
-        // Generate TE lengths
-        let te_lengths: Vec<usize> = (0..mobilized)
-            .into_par_iter()
-            .map(|_| {
-                let mut rng = rand::thread_rng();
-                rng.gen_range(100..=10000)
-            })
-            .collect();
-
-        let local_te_in_exons = AtomicUsize::new(0);
-        let local_te_in_noncoding = AtomicUsize::new(0);
-        let exon_growth = AtomicUsize::new(0);
-        let noncoding_growth = AtomicUsize::new(0);
-
-        // Process TE insertions
-        te_lengths.par_iter().for_each(|&length| {
-            let mut rng = rand::thread_rng();
-            let is_exon = rng.gen_bool(self.exon_length as f64 / self.genome_size as f64);
-
-            if is_exon {
-                local_te_in_exons.fetch_add(1, Ordering::Relaxed);
-                exon_growth.fetch_add(length, Ordering::Relaxed);
-            } else {
-                local_te_in_noncoding.fetch_add(1, Ordering::Relaxed);
-                noncoding_growth.fetch_add(length, Ordering::Relaxed);
-            }
-        });
-
-        // Update TE counts
-        self.te_in_exons += local_te_in_exons.load(Ordering::Relaxed);
-        self.te_in_noncoding += local_te_in_noncoding.load(Ordering::Relaxed);
-
-        // Process deletions
-        let (exon_deletions, noncoding_deletions) = self.process_deletions();
-        
-        // Update genome metrics
-        self.exon_length = self.exon_length 
-            + exon_growth.load(Ordering::Relaxed) 
-            - exon_deletions;
-        
-        self.noncoding_length = self.noncoding_length 
-            + noncoding_growth.load(Ordering::Relaxed) 
-            - noncoding_deletions;
-        
-        self.genome_size = self.exon_length + self.noncoding_length;
-        self.bp_deleted_exon += exon_deletions;
-        self.bp_deleted_noncoding += noncoding_deletions;
-
-        self.store_results(conn)?;
-        
-        println!(
-            "Round {}: TEs: {} mobilized, Exons: +{} -{}, Noncoding: +{} -{}",
-            self.simulation_round,
-            mobilized,
-            exon_growth.load(Ordering::Relaxed),
-            exon_deletions,
-            noncoding_growth.load(Ordering::Relaxed),
-            noncoding_deletions
-        );
-
-        Ok(mobilized)
-    }
-
-    fn store_results(&self, conn: &Connection) -> SqliteResult<()> {
+    pub fn store_results(&self, conn: &Connection) -> SqliteResult<()> {
         conn.execute(
             "INSERT INTO simulation_results (
                 round, species, genome_size, exon_length, noncoding_length,
                 active_te, te_mobilized, te_in_exons, te_in_noncoding,
-                te_mobilize_prob, bp_deleted_exon, bp_deleted_noncoding
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                te_mobilize_prob, exon_bp_deletion_prob, noncoding_bp_deletion_prob,
+                exon_window_deletion_prob, noncoding_window_deletion_prob,
+                bp_deleted_exon, bp_deleted_noncoding
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             params![
                 self.simulation_round as i64,
                 self.species,
@@ -189,11 +123,83 @@ impl SimulationParam {
                 self.te_in_exons as i64,
                 self.te_in_noncoding as i64,
                 self.te_mobilize_prob,
+                self.exon_bp_deletion_prob,
+                self.noncoding_bp_deletion_prob,
+                self.exon_window_deletion_prob,
+                self.noncoding_window_deletion_prob,
                 self.bp_deleted_exon as i64,
                 self.bp_deleted_noncoding as i64,
             ],
         )?;
         Ok(())
+    }
+
+    pub fn run_simulation_round(&mut self, conn: &Connection) -> SqliteResult<usize> {
+        self.simulation_round += 1;
+        let mobilized = (self.active_te as f64 * self.te_mobilize_prob) as usize;
+        self.te_mobilized += mobilized;
+
+        // Generate TE lengths
+        let chunk_size = (mobilized / rayon::current_num_threads()).max(1);
+        let te_lengths: Vec<usize> = (0..mobilized)
+            .into_par_iter()
+            .with_min_len(chunk_size)
+            .map(|_| {
+                let mut rng = rand::thread_rng();
+                rng.gen_range(100..=10000)
+            })
+            .collect();
+
+        let mut exon_insertions = 0;
+        let mut noncoding_insertions = 0;
+        let mut exon_growth = 0;
+        let mut noncoding_growth = 0;
+
+        // Process insertions in batches
+        for length in te_lengths {
+            let mut rng = rand::thread_rng();
+            if rng.gen_bool(self.exon_length as f64 / self.genome_size as f64) {
+                exon_insertions += 1;
+                exon_growth += length;
+            } else {
+                noncoding_insertions += 1;
+                noncoding_growth += length;
+            }
+        }
+
+        // Update TE counts
+        self.te_in_exons += exon_insertions;
+        self.te_in_noncoding += noncoding_insertions;
+
+        // Process deletions
+        let (exon_deletions, noncoding_deletions) = self.process_deletions();
+        
+        // Update genome metrics
+        self.exon_length = self.exon_length + exon_growth - exon_deletions;
+        self.noncoding_length = self.noncoding_length + noncoding_growth - noncoding_deletions;
+        self.genome_size = self.exon_length + self.noncoding_length;
+        self.bp_deleted_exon += exon_deletions;
+        self.bp_deleted_noncoding += noncoding_deletions;
+
+        // Store results periodically
+        if self.simulation_round % 10 == 0 {
+            self.store_results(conn)?;
+        }
+        
+        // Print progress periodically
+        if self.simulation_round % 100 == 0 {
+            println!(
+                "Round {}: TEs: {} mobilized, Exons: +{} -{}, Noncoding: +{} -{}",
+                self.simulation_round,
+                mobilized,
+                exon_growth,
+                exon_deletions,
+                noncoding_growth,
+                noncoding_deletions
+            );
+        }
+
+        Ok(exon_insertions)
     }
 }
 
@@ -218,6 +224,10 @@ fn create_db() -> SqliteResult<Connection> {
             te_in_exons INTEGER NOT NULL,
             te_in_noncoding INTEGER NOT NULL,
             te_mobilize_prob REAL NOT NULL,
+            exon_bp_deletion_prob REAL NOT NULL,
+            noncoding_bp_deletion_prob REAL NOT NULL,
+            exon_window_deletion_prob REAL NOT NULL,
+            noncoding_window_deletion_prob REAL NOT NULL,
             bp_deleted_exon INTEGER NOT NULL,
             bp_deleted_noncoding INTEGER NOT NULL
         )",
