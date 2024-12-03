@@ -348,8 +348,6 @@ fn read_species_data(path: &str) -> Result<Vec<Record>, Box<dyn Error>> {
     records.map_err(|e| e.into())
 }
 
-
-
 fn main() -> Result<(), Box<dyn Error>> {
     let data_path = "/home/jake/Projects/Mobile_DNA_Sim/Jake/Data/grouped_simplified_Species_genomesize_exon.csv"; // Update this with your actual path
     let all_species = read_species_data(data_path)?;
