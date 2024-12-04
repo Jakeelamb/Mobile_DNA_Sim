@@ -19,6 +19,8 @@ pub struct Record {
     pub exons: u64,
     #[serde(rename = "Domain")]
     pub assembly: String,
+    #[serde(rename = "Exon_to_genome_ratio")]
+    pub exon_to_genome_ratio: f64,
 }
 
 #[derive(Clone, Debug)]
